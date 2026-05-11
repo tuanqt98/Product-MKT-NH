@@ -6,7 +6,7 @@ export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
-    const { messages, skillId } = await req.json();
+    const { messages, skillId, image } = await req.json();
 
     // 1. Resolve context and skill paths
     const contextPath = fs.existsSync(path.join(process.cwd(), '.agents/product-marketing-context.md'))
@@ -31,25 +31,19 @@ ${skillContent}
 YÊU CẦU:
 1. Luôn sử dụng ngôn ngữ chuyên nghiệp, tận tâm theo Brand Voice của Nhật Hàn.
 2. Nếu thông tin người dùng cung cấp thiếu, hãy yêu cầu bổ sung.
-3. Định dạng kết quả bằng Markdown đẹp mắt.`;
+3. Định dạng kết quả bằng Markdown đẹp mắt.
+4. Nếu người dùng gửi hình ảnh, hãy phân tích chi tiết hình ảnh đó và đưa ra nhận xét/gợi ý marketing phù hợp.`;
 
-    // 2. Get API Key from environment
+    // 2. Get API Key
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim();
     if (!apiKey) {
-      return new Response(JSON.stringify({ 
-        error: "API Key chưa được cấu hình. Vui lòng thiết lập GOOGLE_GENERATIVE_AI_API_KEY." 
-      }), { status: 500 });
+      return new Response(JSON.stringify({ error: "API Key chưa được cấu hình." }), { status: 500 });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
 
-    // 3. Models sorted by priority (newest & most capable first)
-    const modelsToTry = [
-      "gemini-2.5-flash",
-      "gemini-2.0-flash",
-      "gemini-1.5-flash"
-    ];
-
+    // 3. Models to try
+    const modelsToTry = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
     let lastError = "";
 
     for (const modelName of modelsToTry) {
@@ -59,10 +53,26 @@ YÊU CẦU:
           systemInstruction: systemPrompt
         });
 
-        const chatMessages = messages.map((m: any) => ({
-          role: m.role === 'user' ? 'user' : 'model',
-          parts: [{ text: m.content }]
-        }));
+        // Build chat messages with optional image support
+        const chatMessages = messages.map((m: any, index: number) => {
+          const parts: any[] = [{ text: m.content }];
+          
+          // If this is the last user message and there's an image, attach it
+          if (m.role === 'user' && index === messages.length - 1 && image) {
+            // image is { base64: string, mimeType: string }
+            parts.push({
+              inlineData: {
+                data: image.base64,
+                mimeType: image.mimeType
+              }
+            });
+          }
+
+          return {
+            role: m.role === 'user' ? 'user' : 'model',
+            parts
+          };
+        });
 
         const result = await model.generateContentStream({ contents: chatMessages });
 
@@ -86,7 +96,6 @@ YÊU CẦU:
 
       } catch (err: any) {
         lastError += `\n- ${modelName}: ${err.message}`;
-        console.warn(`Model ${modelName} failed:`, err.message);
         continue;
       }
     }

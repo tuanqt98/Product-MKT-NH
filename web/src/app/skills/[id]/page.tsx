@@ -4,7 +4,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { 
   Send, ArrowLeft, Bot, User, Loader2, Copy, CheckCircle2, Sparkles,
-  Download, Trash2, History, X
+  Download, Trash2, History, X, ImagePlus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
@@ -21,6 +21,8 @@ export default function SkillExecutionPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load chat history from localStorage
   useEffect(() => {
@@ -39,21 +41,44 @@ export default function SkillExecutionPage() {
     }
   }, [messages, id]);
 
+  // Handle image selection
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) {
+      alert('Hình ảnh quá lớn. Vui lòng chọn ảnh dưới 4MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const base64 = result.split(',')[1];
+      setSelectedImage({ base64, mimeType: file.type, preview: result });
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    const userMessage = { id: Date.now().toString(), role: 'user', content: input };
+    const userMessage = { id: Date.now().toString(), role: 'user', content: input, image: selectedImage?.preview };
     setMessages(prev => [...prev, userMessage]);
     const currentInput = input;
+    const currentImage = selectedImage;
     setInput("");
+    setSelectedImage(null);
     setIsLoading(true);
 
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [...messages, userMessage], skillId: id })
+        body: JSON.stringify({ 
+          messages: [...messages, userMessage], 
+          skillId: id,
+          image: currentImage ? { base64: currentImage.base64, mimeType: currentImage.mimeType } : undefined
+        })
       });
 
       if (!response.ok) {
@@ -294,6 +319,10 @@ export default function SkillExecutionPage() {
                   >
                     {copiedId === m.id ? <CheckCircle2 size={12} className="text-green-400" /> : <Copy size={12} className="text-white/40" />}
                   </button>
+                  {/* Show attached image if any */}
+                  {m.image && (
+                    <img src={m.image} alt="Attached" className="max-w-[200px] rounded-xl mb-3 border border-white/10" />
+                  )}
                   {/* Render Markdown for AI messages, plain text for user */}
                   {m.role === 'assistant' ? (
                     <MarkdownRenderer content={m.content} />
@@ -315,12 +344,41 @@ export default function SkillExecutionPage() {
         </div>
 
         <div className="p-6 bg-background/50 border-t border-white/5">
+          {/* Image Preview */}
+          {selectedImage && (
+            <div className="mb-3 flex items-center gap-3 bg-white/5 rounded-2xl p-3 border border-white/10">
+              <img src={selectedImage.preview} alt="Preview" className="w-16 h-16 rounded-xl object-cover" />
+              <div className="flex-1">
+                <p className="text-xs text-white/60">Hình ảnh đã chọn</p>
+                <p className="text-[10px] text-white/40">AI sẽ phân tích hình ảnh này khi bạn gửi tin nhắn</p>
+              </div>
+              <button onClick={() => setSelectedImage(null)} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors">
+                <X size={16} className="text-white/40" />
+              </button>
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="relative flex items-center">
+            {/* Hidden file input */}
+            <input 
+              ref={fileInputRef}
+              type="file" 
+              accept="image/*" 
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+            <button 
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute left-3 p-2 hover:bg-white/10 rounded-xl transition-colors z-10"
+              title="Đính kèm hình ảnh"
+            >
+              <ImagePlus size={18} className={selectedImage ? "text-primary" : "text-white/40"} />
+            </button>
             <input 
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Nhập yêu cầu thực thi..."
-              className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] py-4 pl-6 pr-16 focus:border-primary/50 outline-none transition-all"
+              placeholder={selectedImage ? "Mô tả yêu cầu cho hình ảnh này..." : "Nhập yêu cầu thực thi..."}
+              className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] py-4 pl-14 pr-16 focus:border-primary/50 outline-none transition-all"
             />
             <button 
               type="submit"
