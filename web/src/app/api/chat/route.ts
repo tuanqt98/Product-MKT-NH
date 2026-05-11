@@ -8,7 +8,7 @@ export async function POST(req: Request) {
   try {
     const { messages, skillId } = await req.json();
 
-    // 1. Resolve context and skill paths
+    // 1. Resolve paths
     const contextPath = fs.existsSync(path.join(process.cwd(), '.agents/product-marketing-context.md'))
       ? path.join(process.cwd(), '.agents/product-marketing-context.md')
       : path.join(process.cwd(), '../.agents/product-marketing-context.md');
@@ -19,55 +19,37 @@ export async function POST(req: Request) {
       : path.join(process.cwd(), `../skills/${skillId}/SKILL.md`);
     let skillContent = fs.existsSync(skillPath) ? fs.readFileSync(skillPath, 'utf8') : "";
 
-    const systemPrompt = `BẠN LÀ MỘT CHUYÊN GIA MARKETING THỰC THI (FULLSTACK MARKETING AGENT).
-Sản phẩm phục vụ: Nhật Hàn (Dịch vụ In ấn & Bao bì).
----
-CONTEXT: ${productContext}
----
-SKILL GUIDE: ${skillContent}
-YÊU CẦU: Luôn sử dụng ngôn ngữ chuyên nghiệp, tận tâm. Định dạng kết quả bằng Markdown.`;
+    const systemPrompt = `BẠN LÀ CHUYÊN GIA MARKETING NHẬT HÀN.\nCONTEXT: ${productContext}\nSKILL: ${skillContent}`;
 
-    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-    if (!apiKey) return new Response(JSON.stringify({ error: "API Key chưa cấu hình" }), { status: 500 });
+    // 2. Clean API Key (CRITICAL: Remove any accidental spaces/newlines)
+    const rawApiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    const apiKey = rawApiKey?.trim();
+    
+    if (!apiKey) return new Response(JSON.stringify({ error: "API Key chưa được cấu hình trên Vercel." }), { status: 500 });
 
     const genAI = new GoogleGenerativeAI(apiKey);
 
-    // Ultimate fallback list
-    const configs = [
-      { name: "gemini-1.5-flash", useSystem: true },
-      { name: "gemini-1.5-flash", useSystem: false }, // Try without system instruction if 404
-      { name: "gemini-pro", useSystem: false },       // Classic model
-      { name: "gemini-1.5-pro", useSystem: true }
-    ];
-
+    // 3. Ultra-compatible model list
+    const modelsToTry = ["gemini-1.5-flash", "gemini-pro", "gemini-1.5-flash-8b"];
     let lastError = "";
 
-    for (const config of configs) {
+    for (const modelName of modelsToTry) {
       try {
-        console.log(`Trying ${config.name} (system: ${config.useSystem})...`);
-        
-        const modelOptions: any = { model: config.name };
-        if (config.useSystem) {
-          modelOptions.systemInstruction = systemPrompt;
-        }
+        console.log(`Final attempt with ${modelName}...`);
+        const model = genAI.getGenerativeModel({ model: modelName });
 
-        const model = genAI.getGenerativeModel(modelOptions);
-
+        // Prepend system prompt to the VERY FIRST message instead of using systemInstruction field
+        // This is the most compatible way for all API versions
         let chatMessages = messages.map((m: any) => ({
           role: m.role === 'user' ? 'user' : 'model',
           parts: [{ text: m.content }]
         }));
 
-        // If not using systemInstruction field, prepend it to the first message
-        if (!config.useSystem) {
-          if (chatMessages.length > 0 && chatMessages[0].role === 'user') {
-            chatMessages[0].parts[0].text = `[SYSTEM INSTRUCTION]\n${systemPrompt}\n\n[USER REQUEST]\n${chatMessages[0].parts[0].text}`;
-          }
+        if (chatMessages.length > 0) {
+          chatMessages[0].parts[0].text = `[HƯỚNG DẪN HỆ THỐNG]\n${systemPrompt}\n\n[YÊU CẦU NGƯỜI DÙNG]\n${chatMessages[0].parts[0].text}`;
         }
 
-        const result = await model.generateContentStream({
-          contents: chatMessages,
-        });
+        const result = await model.generateContentStream({ contents: chatMessages });
 
         const stream = new ReadableStream({
           async start(controller) {
@@ -88,13 +70,13 @@ YÊU CẦU: Luôn sử dụng ngôn ngữ chuyên nghiệp, tận tâm. Định 
         return new Response(stream, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
 
       } catch (err: any) {
-        lastError += `\n- ${config.name} (sys:${config.useSystem}): ${err.message}`;
+        lastError += `\n- ${modelName}: ${err.message}`;
         continue;
       }
     }
 
     return new Response(JSON.stringify({ 
-      error: "Không thể kết nối với AI. Có thể do API Key của bạn chưa được kích hoạt đầy đủ model này.",
+      error: "Tất cả nỗ lực kết nối AI đều thất bại. Có thể do API Key của bạn bị Google từ chối.",
       details: lastError
     }), { status: 429 });
 
