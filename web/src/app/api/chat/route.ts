@@ -4,7 +4,6 @@ import path from 'path';
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
-  console.log(">>> AI CHAT REQUEST RECEIVED <<<");
   try {
     const { messages, skillId } = await req.json();
 
@@ -24,27 +23,19 @@ Sản phẩm phục vụ: Nhật Hàn (Dịch vụ In ấn).
 CONTEXT: ${productContext}
 ---
 SKILL GUIDE: ${skillContent}
----
-YÊU CẦU:
-1. Luôn sử dụng ngôn ngữ chuyên nghiệp, tận tâm theo Brand Voice của Nhật Hàn.
-2. Nếu thông tin người dùng cung cấp thiếu, hãy yêu cầu bổ sung.
-3. Định dạng kết quả bằng Markdown đẹp mắt.`;
+YÊU CẦU: Luôn sử dụng ngôn ngữ chuyên nghiệp, tận tâm. Định dạng kết quả bằng Markdown.`;
 
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-    if (!apiKey) {
-      return new Response(JSON.stringify({ error: "API Key chưa được cấu hình trong Environment Variables của Vercel." }), { status: 500 });
-    }
+    if (!apiKey) return new Response(JSON.stringify({ error: "API Key chưa cấu hình" }), { status: 500 });
 
-    // Comprehensive list of models to try as fallbacks
-    const modelsToTry = [
-      'gemini-1.5-flash-latest', 
-      'gemini-1.5-flash', 
-      'gemini-1.5-flash-8b', 
-      'gemini-2.0-flash-exp', 
-      'gemini-2.0-flash-lite-preview-02-05',
-      'gemini-2.0-flash',
-      'gemini-pro',
-      'gemini-1.5-pro'
+    // Refined model list with correct API versions
+    const configs = [
+      { model: 'gemini-1.5-flash', version: 'v1' }, // High quota, stable
+      { model: 'gemini-1.5-flash-8b', version: 'v1' }, // Highest quota
+      { model: 'gemini-pro', version: 'v1' }, // Stable legacy
+      { model: 'gemini-1.5-pro', version: 'v1' },
+      { model: 'gemini-2.0-flash-lite-preview-02-05', version: 'v1beta' },
+      { model: 'gemini-2.0-flash', version: 'v1beta' }
     ];
     
     const contents = messages.map((m: any) => ({
@@ -54,9 +45,8 @@ YÊU CẦU:
 
     let detailedErrors: string[] = [];
 
-    for (const modelName of modelsToTry) {
-      console.log(`Trying model: ${modelName}...`);
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?alt=sse&key=${apiKey}`;
+    for (const config of configs) {
+      const url = `https://generativelanguage.googleapis.com/${config.version}/models/${config.model}:streamGenerateContent?alt=sse&key=${apiKey}`;
 
       try {
         const googleRes = await fetch(url, {
@@ -71,14 +61,11 @@ YÊU CẦU:
 
         if (!googleRes.ok) {
           const errorText = await googleRes.text();
-          let errorMsg = `Model ${modelName}: ${googleRes.status}`;
+          let errorMsg = `${config.model}: `;
           try {
             const errorJson = JSON.parse(errorText);
-            errorMsg += ` - ${errorJson.error?.message || errorJson.error?.status || 'Unknown error'}`;
-          } catch {
-            errorMsg += ` - ${errorText.substring(0, 100)}`;
-          }
-          console.error(errorMsg);
+            errorMsg += errorJson.error?.message || errorJson.error?.status || errorText;
+          } catch { errorMsg += errorText.substring(0, 100); }
           detailedErrors.push(errorMsg);
           continue; 
         }
@@ -111,20 +98,15 @@ YÊU CẦU:
 
         return new Response(stream, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
 
-      } catch (fetchError: any) {
-        detailedErrors.push(`Fetch error for ${modelName}: ${fetchError.message}`);
-        continue;
+      } catch (e: any) {
+        detailedErrors.push(`Error ${config.model}: ${e.message}`);
       }
     }
 
-    // All models failed
-    return new Response(
-      JSON.stringify({ 
-        error: "Toàn bộ hệ thống AI đang tạm thời hết hạn mức (Quota Exceeded) cho gói miễn phí. \n\nVui lòng thử lại sau vài phút hoặc kiểm tra thông báo chi tiết bên dưới:",
-        details: detailedErrors.join('\n')
-      }),
-      { status: 429, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ 
+      error: "Tất cả các dòng AI hiện tại đều báo hết hạn mức (Quota Exceeded) hoặc chưa được kích hoạt cho Key của bạn.",
+      details: detailedErrors.join('\n')
+    }), { status: 429 });
 
   } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
