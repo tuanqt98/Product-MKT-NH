@@ -4,7 +4,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { 
   Send, ArrowLeft, Bot, User, Loader2, Copy, CheckCircle2, Sparkles,
-  Download, Trash2, History, X, ImagePlus
+  Download, Trash2, History, X, ImagePlus, Share2, Globe
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
@@ -21,6 +21,7 @@ export default function SkillExecutionPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isPublishing, setIsPublishing] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -199,6 +200,28 @@ export default function SkillExecutionPage() {
     }
   }, [messages, skill]);
 
+  // Handle posting to Facebook
+  const handlePostToFacebook = async (content: string, msgId: string) => {
+    setIsPublishing(msgId);
+    try {
+      const response = await fetch('/api/facebook/post', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content })
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert("🎉 Đã đăng bài thành công lên Fanpage Nhật Hàn!");
+      } else {
+        alert(`❌ Lỗi: ${data.error}`);
+      }
+    } catch (error: any) {
+      alert(`❌ Lỗi kết nối: ${error.message}`);
+    } finally {
+      setIsPublishing(null);
+    }
+  };
+
   // Clear chat history
   const clearHistory = useCallback(() => {
     setMessages([]);
@@ -315,13 +338,25 @@ export default function SkillExecutionPage() {
                   m.role === 'user' ? "bg-indigo-600/20 rounded-tr-none" : "bg-white/5 rounded-tl-none border border-white/10"
                 )}>
                   {/* Copy button per message */}
-                  <button 
-                    onClick={() => copyMessage(m.content, m.id)}
-                    className="absolute top-3 right-3 p-1.5 rounded-lg bg-white/5 hover:bg-white/15 opacity-0 group-hover:opacity-100 transition-all"
-                    title="Sao chép tin nhắn"
-                  >
-                    {copiedId === m.id ? <CheckCircle2 size={12} className="text-green-400" /> : <Copy size={12} className="text-white/40" />}
-                  </button>
+                  <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                    {m.role === 'assistant' && (
+                      <button 
+                        onClick={() => handlePostToFacebook(m.content, m.id)}
+                        disabled={isPublishing !== null}
+                        className="p-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/20"
+                        title="Đăng lên Fanpage Facebook"
+                      >
+                        {isPublishing === m.id ? <Loader2 size={12} className="animate-spin" /> : <Share2 size={12} />}
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => copyMessage(m.content, m.id)}
+                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15"
+                      title="Sao chép tin nhắn"
+                    >
+                      {copiedId === m.id ? <CheckCircle2 size={12} className="text-green-400" /> : <Copy size={12} className="text-white/40" />}
+                    </button>
+                  </div>
                   {/* Show attached image if any */}
                   {m.image && (
                     <img src={m.image} alt="Attached" className="max-w-[200px] rounded-xl mb-3 border border-white/10" />
