@@ -1,77 +1,31 @@
 import fs from 'fs';
 import path from 'path';
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export const maxDuration = 60;
 
-// TEST ONLY: HARDCODED API KEY TO BYPASS VERCEL ENV ISSUES
 const HARDCODED_KEY = "AIzaSyDp_dLf3CR9ySFADw8gd_qfxRnJrqpiAVg";
 
 export async function POST(req: Request) {
   try {
-    const { messages, skillId } = await req.json();
+    // ULTIMATE DEBUG: LIST ALL MODELS AVAILABLE FOR THIS KEY
+    console.log("Checking available models for the key...");
+    const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${HARDCODED_KEY}`;
+    const listRes = await fetch(listUrl);
+    const listData = await listRes.json();
 
-    // 1. Resolve paths
-    const contextPath = fs.existsSync(path.join(process.cwd(), '.agents/product-marketing-context.md'))
-      ? path.join(process.cwd(), '.agents/product-marketing-context.md')
-      : path.join(process.cwd(), '../.agents/product-marketing-context.md');
-    let productContext = fs.existsSync(contextPath) ? fs.readFileSync(contextPath, 'utf8') : "";
-
-    const skillPath = fs.existsSync(path.join(process.cwd(), `skills/${skillId}/SKILL.md`))
-      ? path.join(process.cwd(), `skills/${skillId}/SKILL.md`)
-      : path.join(process.cwd(), `../skills/${skillId}/SKILL.md`);
-    let skillContent = fs.existsSync(skillPath) ? fs.readFileSync(skillPath, 'utf8') : "";
-
-    const systemPrompt = `BẠN LÀ CHUYÊN GIA MARKETING NHẬT HÀN.\nCONTEXT: ${productContext}\nSKILL: ${skillContent}`;
-
-    // Use Hardcoded Key for this debug build
-    const apiKey = HARDCODED_KEY;
-    const genAI = new GoogleGenerativeAI(apiKey);
-
-    const modelsToTry = ["gemini-1.5-flash", "gemini-pro"];
-    let lastError = "";
-
-    for (const modelName of modelsToTry) {
-      try {
-        console.log(`Debug Hardcoded Attempt with ${modelName}...`);
-        const model = genAI.getGenerativeModel({ model: modelName });
-
-        let chatMessages = messages.map((m: any) => ({
-          role: m.role === 'user' ? 'user' : 'model',
-          parts: [{ text: m.content }]
-        }));
-
-        if (chatMessages.length > 0) {
-          chatMessages[0].parts[0].text = `[SYSTEM]\n${systemPrompt}\n\n[USER]\n${chatMessages[0].parts[0].text}`;
-        }
-
-        const result = await model.generateContentStream({ contents: chatMessages });
-
-        const stream = new ReadableStream({
-          async start(controller) {
-            const encoder = new TextEncoder();
-            try {
-              for await (const chunk of result.stream) {
-                const chunkText = chunk.text();
-                if (chunkText) controller.enqueue(encoder.encode(chunkText));
-              }
-            } catch (err: any) { console.error("Stream error:", err); }
-            finally { controller.close(); }
-          },
-        });
-
-        return new Response(stream, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
-
-      } catch (err: any) {
-        lastError += `\n- ${modelName}: ${err.message}`;
-        continue;
-      }
+    if (!listRes.ok) {
+      return new Response(JSON.stringify({ 
+        error: "Google từ chối Key này ngay cả khi chỉ liệt kê danh sách model.",
+        details: JSON.stringify(listData)
+      }), { status: 403 });
     }
 
+    const availableModels = listData.models?.map((m: any) => m.name.replace('models/', '')) || [];
+    
     return new Response(JSON.stringify({ 
-      error: "Hardcoded Key cũng thất bại. Vui lòng kiểm tra lại tính hợp lệ của mã API Key tại Google AI Studio.",
-      details: lastError
-    }), { status: 429 });
+      error: `Key của bạn hiện CHỈ nhìn thấy các model sau: ${availableModels.join(', ') || 'KHÔNG CÓ MODEL NÀO'}.`,
+      details: "Vui lòng tạo một API Key mới tại một Google Cloud Project khác hoặc kiểm tra lại quyền hạn của Key này."
+    }), { status: 404 });
 
   } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
