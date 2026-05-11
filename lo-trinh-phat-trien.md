@@ -42,7 +42,7 @@
 
 | # | Tính năng | Mô tả | Công nghệ |
 |---|-----------|-------|-----------|
-| 3.1 | **Kết nối Facebook Graph API** | Tự động đăng bài lên Fanpage từ nội dung AI | Facebook Graph API v19 |
+| 3.1 | ~~**Kết nối Facebook Graph API**~~ | ✅ Đã hoàn thành — Nút đăng bài trực tiếp từ AI | Facebook Graph API v19 |
 | 3.2 | ~~**Dashboard chỉ số Facebook**~~ | ✅ Đã hoàn thành UI Dashboard chuyên nghiệp | Chart.js/Recharts + Facebook Insights API |
 | 3.3 | **Kết nối Zalo OA** | Gửi tin nhắn ZNS tự động cho khách hàng | Zalo OA API |
 | 3.4 | **Lập lịch đăng bài** | Hẹn giờ đăng nội dung lên Facebook/Zalo | Cron job (Vercel Cron) |
