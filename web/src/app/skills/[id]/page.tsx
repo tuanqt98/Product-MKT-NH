@@ -267,7 +267,7 @@ export default function SkillExecutionPage() {
       <div className="flex-1 glass rounded-[2.5rem] border border-white/5 overflow-hidden flex flex-col relative">
         <div ref={scrollRef} className="flex-1 overflow-y-auto p-8 space-y-6 scroll-smooth">
           {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center space-y-6 max-w-md mx-auto">
+            <div className="h-full flex flex-col items-center justify-center text-center space-y-6 max-w-lg mx-auto">
               <div className="w-20 h-20 rounded-3xl bg-primary/20 flex items-center justify-center text-primary animate-pulse">
                 <Sparkles size={40} />
               </div>
@@ -277,20 +277,23 @@ export default function SkillExecutionPage() {
                   Hãy nhập yêu cầu cụ thể của bạn. Tôi sẽ kết hợp ngữ cảnh Nhật Hàn và kỹ năng &quot;{skill?.name}&quot; để tạo ra kết quả tốt nhất.
                 </p>
               </div>
-              <div className="grid grid-cols-1 gap-2 w-full">
-                <button 
-                  onClick={() => setInput("Lập kế hoạch cho dịch vụ in ấn ngay")}
-                  className="px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-xs text-left transition-colors"
-                >
-                  &quot;Lập kế hoạch cho dịch vụ in ấn ngay&quot;
-                </button>
-                <button 
-                  onClick={() => setInput("Phân tích đối thủ cạnh tranh trong ngành in ấn bao bì")}
-                  className="px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-xs text-left transition-colors"
-                >
-                  &quot;Phân tích đối thủ cạnh tranh trong ngành in ấn bao bì&quot;
-                </button>
-              </div>
+              {skill?.suggestions && skill.suggestions.length > 0 && (
+                <div className="w-full space-y-2">
+                  <p className="text-[11px] text-white/30 uppercase tracking-wider font-semibold">💡 Gợi ý cho bạn</p>
+                  <div className="grid grid-cols-1 gap-2 w-full">
+                    {skill.suggestions.map((suggestion: string, idx: number) => (
+                      <button 
+                        key={idx}
+                        onClick={() => setInput(suggestion)}
+                        className="group px-4 py-3 bg-white/5 hover:bg-primary/10 border border-white/10 hover:border-primary/30 rounded-2xl text-xs text-left transition-all duration-200 flex items-start gap-3"
+                      >
+                        <span className="text-primary/60 group-hover:text-primary mt-0.5">→</span>
+                        <span className="text-white/70 group-hover:text-white/90">{suggestion}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             messages.map((m) => (
