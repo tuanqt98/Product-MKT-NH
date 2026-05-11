@@ -1,6 +1,6 @@
 # 🚀 NH Marketing AI — Lộ Trình Phát Triển Tổng Thể
 
-> Cập nhật lần cuối: 11/05/2026
+> Cập nhật lần cuối: 12/05/2026 (Kích hoạt Hệ thống Tự động hóa)
 
 ---
 
