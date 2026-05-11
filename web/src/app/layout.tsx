@@ -9,6 +9,19 @@ const inter = Inter({ subsets: ["latin", "vietnamese"] });
 export const metadata: Metadata = {
   title: "NH Marketing AI - Nhật Hàn",
   description: "Hệ thống quản lý Marketing AI dành riêng cho công ty Nhật Hàn",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "NH Marketing AI",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+};
+
+export const viewport = {
+  themeColor: "#0f172a",
 };
 
 export default function RootLayout({

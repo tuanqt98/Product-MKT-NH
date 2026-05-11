@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint"
   },
@@ -12,6 +12,7 @@
     "@ai-sdk/anthropic": "^3.0.76",
     "@ai-sdk/google": "^3.0.71",
     "@ai-sdk/react": "^3.0.179",
+    "@ducanh2912/next-pwa": "^10.2.9",
     "@google/generative-ai": "^0.24.1",
     "ai": "^6.0.177",
     "clsx": "^2.1.1",
