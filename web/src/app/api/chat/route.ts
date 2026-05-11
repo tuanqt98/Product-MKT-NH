@@ -28,14 +28,13 @@ YÊU CẦU: Luôn sử dụng ngôn ngữ chuyên nghiệp, tận tâm. Định 
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!apiKey) return new Response(JSON.stringify({ error: "API Key chưa cấu hình" }), { status: 500 });
 
-    // Refined model list with correct API versions
-    const configs = [
-      { model: 'gemini-1.5-flash', version: 'v1' }, // High quota, stable
-      { model: 'gemini-1.5-flash-8b', version: 'v1' }, // Highest quota
-      { model: 'gemini-pro', version: 'v1' }, // Stable legacy
-      { model: 'gemini-1.5-pro', version: 'v1' },
-      { model: 'gemini-2.0-flash-lite-preview-02-05', version: 'v1beta' },
-      { model: 'gemini-2.0-flash', version: 'v1beta' }
+    // Use v1beta for all as it has the best support for system_instruction
+    const modelNames = [
+      'gemini-1.5-flash',
+      'gemini-1.5-flash-8b',
+      'gemini-1.5-pro',
+      'gemini-2.0-flash-lite-preview-02-05',
+      'gemini-2.0-flash'
     ];
     
     const contents = messages.map((m: any) => ({
@@ -45,8 +44,8 @@ YÊU CẦU: Luôn sử dụng ngôn ngữ chuyên nghiệp, tận tâm. Định 
 
     let detailedErrors: string[] = [];
 
-    for (const config of configs) {
-      const url = `https://generativelanguage.googleapis.com/${config.version}/models/${config.model}:streamGenerateContent?alt=sse&key=${apiKey}`;
+    for (const modelName of modelNames) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?alt=sse&key=${apiKey}`;
 
       try {
         const googleRes = await fetch(url, {
@@ -54,14 +53,15 @@ YÊU CẦU: Luôn sử dụng ngôn ngữ chuyên nghiệp, tận tâm. Định 
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents,
-            systemInstruction: { parts: [{ text: systemPrompt }] },
+            // CORRECT FIELD NAME FOR REST API IS system_instruction
+            system_instruction: { parts: [{ text: systemPrompt }] },
             generationConfig: { temperature: 0.8, maxOutputTokens: 4096 }
           })
         });
 
         if (!googleRes.ok) {
           const errorText = await googleRes.text();
-          let errorMsg = `${config.model}: `;
+          let errorMsg = `${modelName}: `;
           try {
             const errorJson = JSON.parse(errorText);
             errorMsg += errorJson.error?.message || errorJson.error?.status || errorText;
@@ -99,12 +99,12 @@ YÊU CẦU: Luôn sử dụng ngôn ngữ chuyên nghiệp, tận tâm. Định 
         return new Response(stream, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
 
       } catch (e: any) {
-        detailedErrors.push(`Error ${config.model}: ${e.message}`);
+        detailedErrors.push(`Error ${modelName}: ${e.message}`);
       }
     }
 
     return new Response(JSON.stringify({ 
-      error: "Tất cả các dòng AI hiện tại đều báo hết hạn mức (Quota Exceeded) hoặc chưa được kích hoạt cho Key của bạn.",
+      error: "Hệ thống AI đang tạm thời hết hạn mức. Chi tiết kỹ thuật bên dưới.",
       details: detailedErrors.join('\n')
     }), { status: 429 });
 
