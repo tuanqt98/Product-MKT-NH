@@ -19,37 +19,50 @@ export async function POST(req: Request) {
       : path.join(process.cwd(), `../skills/${skillId}/SKILL.md`);
     let skillContent = fs.existsSync(skillPath) ? fs.readFileSync(skillPath, 'utf8') : "";
 
-    const systemPrompt = `BẠN LÀ CHUYÊN GIA MARKETING NHẬT HÀN.\nCONTEXT: ${productContext}\nSKILL: ${skillContent}`;
+    const systemPrompt = `BẠN LÀ MỘT CHUYÊN GIA MARKETING THỰC THI (FULLSTACK MARKETING AGENT).
+Sản phẩm phục vụ: Nhật Hàn (Dịch vụ In ấn & Bao bì).
+---
+CONTEXT SẢN PHẨM:
+${productContext}
+---
+SKILL HƯỚNG DẪN:
+${skillContent}
+---
+YÊU CẦU:
+1. Luôn sử dụng ngôn ngữ chuyên nghiệp, tận tâm theo Brand Voice của Nhật Hàn.
+2. Nếu thông tin người dùng cung cấp thiếu, hãy yêu cầu bổ sung.
+3. Định dạng kết quả bằng Markdown đẹp mắt.`;
 
-    // 2. Use Secure Environment Variable from Vercel
-    const rawApiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-    const apiKey = rawApiKey?.trim();
-    
+    // 2. Get API Key from environment
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim();
     if (!apiKey) {
       return new Response(JSON.stringify({ 
-        error: "Hệ thống chưa có API Key. Vui lòng cấu hình GOOGLE_GENERATIVE_AI_API_KEY trong Environment Variables trên Vercel." 
+        error: "API Key chưa được cấu hình. Vui lòng thiết lập GOOGLE_GENERATIVE_AI_API_KEY." 
       }), { status: 500 });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
 
-    // 3. Official models to use
-    const modelNames = ["gemini-1.5-flash", "gemini-1.5-pro"];
+    // 3. Models sorted by priority (newest & most capable first)
+    const modelsToTry = [
+      "gemini-2.5-flash",
+      "gemini-2.0-flash",
+      "gemini-1.5-flash"
+    ];
+
     let lastError = "";
 
-    for (const modelName of modelNames) {
+    for (const modelName of modelsToTry) {
       try {
-        const model = genAI.getGenerativeModel({ model: modelName });
+        const model = genAI.getGenerativeModel({ 
+          model: modelName,
+          systemInstruction: systemPrompt
+        });
 
-        let chatMessages = messages.map((m: any) => ({
+        const chatMessages = messages.map((m: any) => ({
           role: m.role === 'user' ? 'user' : 'model',
           parts: [{ text: m.content }]
         }));
-
-        // Inline system instruction for maximum compatibility
-        if (chatMessages.length > 0) {
-          chatMessages[0].parts[0].text = `[SYSTEM]\n${systemPrompt}\n\n[USER]\n${chatMessages[0].parts[0].text}`;
-        }
 
         const result = await model.generateContentStream({ contents: chatMessages });
 
@@ -61,8 +74,11 @@ export async function POST(req: Request) {
                 const chunkText = chunk.text();
                 if (chunkText) controller.enqueue(encoder.encode(chunkText));
               }
-            } catch (err: any) { console.error("Stream error:", err); }
-            finally { controller.close(); }
+            } catch (err: any) {
+              console.error("Stream error:", err.message);
+            } finally {
+              controller.close();
+            }
           },
         });
 
@@ -70,12 +86,13 @@ export async function POST(req: Request) {
 
       } catch (err: any) {
         lastError += `\n- ${modelName}: ${err.message}`;
+        console.warn(`Model ${modelName} failed:`, err.message);
         continue;
       }
     }
 
     return new Response(JSON.stringify({ 
-      error: "Không thể kết nối AI. Vui lòng kiểm tra lại tính hợp lệ của API Key trên Vercel.",
+      error: "Không thể kết nối AI. Vui lòng thử lại sau.",
       details: lastError
     }), { status: 429 });
 
