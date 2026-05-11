@@ -46,11 +46,17 @@ export default function SkillExecutionPage() {
       // Handle error responses (JSON with error message)
       if (!response.ok) {
         let errorMsg = "Lỗi kết nối máy chủ";
+        let detailedError = "";
         try {
           const errorData = await response.json();
           errorMsg = errorData.error || errorMsg;
+          detailedError = errorData.details || "";
         } catch {}
-        const errorMessage = { id: (Date.now() + 1).toString(), role: 'assistant', content: `⚠️ **Lỗi:** ${errorMsg}` };
+        const errorMessage = { 
+          id: (Date.now() + 1).toString(), 
+          role: 'assistant', 
+          content: `⚠️ **Lỗi:** ${errorMsg}${detailedError ? `\n\n**Chi tiết kỹ thuật:**\n\`\`\`\n${detailedError}\n\`\`\`` : ""}` 
+        };
         setMessages(prev => [...prev, errorMessage]);
         return;
       }
