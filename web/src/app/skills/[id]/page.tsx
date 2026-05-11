@@ -1,30 +1,43 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { 
-  Send, 
-  ArrowLeft, 
-  Bot, 
-  User, 
-  Loader2, 
-  Copy, 
-  CheckCircle2,
-  Sparkles
+  Send, ArrowLeft, Bot, User, Loader2, Copy, CheckCircle2, Sparkles,
+  Download, Trash2, History, X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import MarkdownRenderer from '@/components/MarkdownRenderer';
 
 export default function SkillExecutionPage() {
   const { id } = useParams();
   const router = useRouter();
   const [skill, setSkill] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Load chat history from localStorage
+  useEffect(() => {
+    if (id) {
+      const saved = localStorage.getItem(`nh-chat-${id}`);
+      if (saved) {
+        try { setMessages(JSON.parse(saved)); } catch {}
+      }
+    }
+  }, [id]);
+
+  // Save chat to localStorage whenever messages change
+  useEffect(() => {
+    if (id && messages.length > 0) {
+      localStorage.setItem(`nh-chat-${id}`, JSON.stringify(messages));
+    }
+  }, [messages, id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +56,6 @@ export default function SkillExecutionPage() {
         body: JSON.stringify({ messages: [...messages, userMessage], skillId: id })
       });
 
-      // Handle error responses (JSON with error message)
       if (!response.ok) {
         let errorMsg = "Lỗi kết nối máy chủ";
         let detailedError = "";
@@ -53,8 +65,7 @@ export default function SkillExecutionPage() {
           detailedError = errorData.details || "";
         } catch {}
         const errorMessage = { 
-          id: (Date.now() + 1).toString(), 
-          role: 'assistant', 
+          id: (Date.now() + 1).toString(), role: 'assistant', 
           content: `⚠️ **Lỗi:** ${errorMsg}${detailedError ? `\n\n**Chi tiết kỹ thuật:**\n\`\`\`\n${detailedError}\n\`\`\`` : ""}` 
         };
         setMessages(prev => [...prev, errorMessage]);
@@ -80,7 +91,6 @@ export default function SkillExecutionPage() {
         }
       }
 
-      // If no content received, show warning
       if (!assistantMessage.content.trim()) {
         assistantMessage.content = "⚠️ AI không trả về nội dung. Vui lòng thử lại sau 1 phút.";
         setMessages(prev => {
@@ -97,30 +107,89 @@ export default function SkillExecutionPage() {
     }
   };
 
-  useEffect(() => {
-    fetch(`/api/skills/${id}`)
-      .then(res => res.json())
-      .then(data => {
-        setSkill(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
+  // Copy single message
+  const copyMessage = useCallback((text: string, msgId: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(msgId);
+    setTimeout(() => setCopiedId(null), 2000);
+  }, []);
+
+  // Copy all AI responses
+  const copyAllResults = useCallback(() => {
+    const aiMessages = messages.filter(m => m.role === 'assistant').map(m => m.content).join('\n\n---\n\n');
+    navigator.clipboard.writeText(aiMessages);
+    setCopiedId('all');
+    setTimeout(() => setCopiedId(null), 2000);
+  }, [messages]);
+
+  // Export as PDF (using print)
+  const exportPDF = useCallback(() => {
+    const aiMessages = messages.filter(m => m.role === 'assistant').map(m => m.content).join('\n\n---\n\n');
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>${skill?.name || 'NH Marketing AI'} - Kết quả</title>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; color: #1a1a2e; line-height: 1.8; }
+            h1 { color: #0f3460; border-bottom: 3px solid #e94560; padding-bottom: 10px; }
+            h2 { color: #16213e; margin-top: 24px; }
+            h3 { color: #0f3460; }
+            table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+            th, td { border: 1px solid #ddd; padding: 10px 14px; text-align: left; }
+            th { background: #0f3460; color: white; }
+            tr:nth-child(even) { background: #f8f9fa; }
+            code { background: #f0f0f0; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+            pre { background: #1a1a2e; color: #e0e0e0; padding: 16px; border-radius: 8px; overflow-x: auto; }
+            pre code { background: none; color: inherit; }
+            blockquote { border-left: 4px solid #e94560; margin: 16px 0; padding: 8px 16px; background: #fff5f5; }
+            hr { border: none; border-top: 2px solid #eee; margin: 24px 0; }
+            .header { display: flex; align-items: center; gap: 12px; margin-bottom: 30px; }
+            .logo { width: 48px; height: 48px; background: #0f3460; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px; }
+            .meta { color: #888; font-size: 12px; margin-top: 40px; border-top: 1px solid #eee; padding-top: 12px; }
+            ul, ol { padding-left: 20px; }
+            li { margin-bottom: 4px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="logo">NH</div>
+            <div>
+              <h1 style="margin:0; border:none; padding:0;">${skill?.name || 'NH Marketing AI'}</h1>
+              <p style="margin:4px 0 0 0; color:#888;">Nhật Hàn - Giải Pháp Bao Bì & Nhãn Mác Chuyên Nghiệp</p>
+            </div>
+          </div>
+          ${aiMessages.replace(/\n/g, '<br>')}
+          <div class="meta">
+            <p>📄 Được tạo bởi NH Marketing AI — ${new Date().toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+          </div>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+      setTimeout(() => printWindow.print(), 500);
+    }
+  }, [messages, skill]);
+
+  // Clear chat history
+  const clearHistory = useCallback(() => {
+    setMessages([]);
+    if (id) localStorage.removeItem(`nh-chat-${id}`);
   }, [id]);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
+    fetch(`/api/skills/${id}`)
+      .then(res => res.json())
+      .then(data => { setSkill(data); setLoading(false); })
+      .catch(err => { console.error(err); setLoading(false); });
+  }, [id]);
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages]);
 
   if (loading) return (
     <div className="h-full flex items-center justify-center">
@@ -132,10 +201,7 @@ export default function SkillExecutionPage() {
     <div className="flex flex-col h-[calc(100vh-4rem)] space-y-6">
       <header className="flex justify-between items-center">
         <div className="flex items-center gap-4">
-          <button 
-            onClick={() => router.back()}
-            className="p-2 hover:bg-white/5 rounded-full transition-colors"
-          >
+          <button onClick={() => router.back()} className="p-2 hover:bg-white/5 rounded-full transition-colors">
             <ArrowLeft size={20} />
           </button>
           <div>
@@ -144,19 +210,37 @@ export default function SkillExecutionPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <button className="glass px-4 py-2 rounded-xl text-xs font-bold hover:bg-accent transition-colors flex items-center gap-2">
-            <Copy size={14} />
-            Sao chép kết quả
+          {messages.length > 0 && (
+            <>
+              <button 
+                onClick={clearHistory}
+                className="glass px-3 py-2 rounded-xl text-xs font-bold hover:bg-red-500/20 transition-colors flex items-center gap-1.5 text-red-400"
+                title="Xóa lịch sử"
+              >
+                <Trash2 size={14} />
+              </button>
+              <button 
+                onClick={exportPDF}
+                className="glass px-4 py-2 rounded-xl text-xs font-bold hover:bg-accent transition-colors flex items-center gap-2"
+              >
+                <Download size={14} />
+                Tải PDF
+              </button>
+            </>
+          )}
+          <button 
+            onClick={copyAllResults}
+            className="glass px-4 py-2 rounded-xl text-xs font-bold hover:bg-accent transition-colors flex items-center gap-2"
+          >
+            {copiedId === 'all' ? <CheckCircle2 size={14} className="text-green-400" /> : <Copy size={14} />}
+            {copiedId === 'all' ? 'Đã sao chép!' : 'Sao chép kết quả'}
           </button>
         </div>
       </header>
 
       {/* Chat Area */}
       <div className="flex-1 glass rounded-[2.5rem] border border-white/5 overflow-hidden flex flex-col relative">
-        <div 
-          ref={scrollRef}
-          className="flex-1 overflow-y-auto p-8 space-y-6 scroll-smooth"
-        >
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-8 space-y-6 scroll-smooth">
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center space-y-6 max-w-md mx-auto">
               <div className="w-20 h-20 rounded-3xl bg-primary/20 flex items-center justify-center text-primary animate-pulse">
@@ -165,15 +249,21 @@ export default function SkillExecutionPage() {
               <div>
                 <h3 className="text-xl font-bold">Bắt đầu thực hiện Skill</h3>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Hãy nhập yêu cầu cụ thể của bạn. Tôi sẽ kết hợp ngữ cảnh Nhật Hàn và kỹ năng "{skill?.name}" để tạo ra kết quả tốt nhất.
+                  Hãy nhập yêu cầu cụ thể của bạn. Tôi sẽ kết hợp ngữ cảnh Nhật Hàn và kỹ năng &quot;{skill?.name}&quot; để tạo ra kết quả tốt nhất.
                 </p>
               </div>
               <div className="grid grid-cols-1 gap-2 w-full">
                 <button 
                   onClick={() => setInput("Lập kế hoạch cho dịch vụ in ấn ngay")}
-                  className="px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-xs text-left"
+                  className="px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-xs text-left transition-colors"
                 >
-                  "Lập kế hoạch cho dịch vụ in ấn ngay"
+                  &quot;Lập kế hoạch cho dịch vụ in ấn ngay&quot;
+                </button>
+                <button 
+                  onClick={() => setInput("Phân tích đối thủ cạnh tranh trong ngành in ấn bao bì")}
+                  className="px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-xs text-left transition-colors"
+                >
+                  &quot;Phân tích đối thủ cạnh tranh trong ngành in ấn bao bì&quot;
                 </button>
               </div>
             </div>
@@ -182,7 +272,7 @@ export default function SkillExecutionPage() {
               <div 
                 key={m.id} 
                 className={cn(
-                  "flex gap-4 max-w-[85%]",
+                  "flex gap-4 max-w-[85%] group",
                   m.role === 'user' ? "ml-auto flex-row-reverse" : ""
                 )}
               >
@@ -193,10 +283,23 @@ export default function SkillExecutionPage() {
                   {m.role === 'user' ? <User size={20} /> : <Bot size={20} />}
                 </div>
                 <div className={cn(
-                  "p-5 rounded-[2rem] text-sm leading-relaxed",
+                  "relative p-5 rounded-[2rem] text-sm leading-relaxed",
                   m.role === 'user' ? "bg-indigo-600/20 rounded-tr-none" : "bg-white/5 rounded-tl-none border border-white/10"
                 )}>
-                  <div className="whitespace-pre-wrap">{m.content}</div>
+                  {/* Copy button per message */}
+                  <button 
+                    onClick={() => copyMessage(m.content, m.id)}
+                    className="absolute top-3 right-3 p-1.5 rounded-lg bg-white/5 hover:bg-white/15 opacity-0 group-hover:opacity-100 transition-all"
+                    title="Sao chép tin nhắn"
+                  >
+                    {copiedId === m.id ? <CheckCircle2 size={12} className="text-green-400" /> : <Copy size={12} className="text-white/40" />}
+                  </button>
+                  {/* Render Markdown for AI messages, plain text for user */}
+                  {m.role === 'assistant' ? (
+                    <MarkdownRenderer content={m.content} />
+                  ) : (
+                    <div className="whitespace-pre-wrap">{m.content}</div>
+                  )}
                 </div>
               </div>
             ))
@@ -212,13 +315,7 @@ export default function SkillExecutionPage() {
         </div>
 
         <div className="p-6 bg-background/50 border-t border-white/5">
-          <form 
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSubmit(e);
-            }}
-            className="relative flex items-center"
-          >
+          <form onSubmit={handleSubmit} className="relative flex items-center">
             <input 
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -227,6 +324,7 @@ export default function SkillExecutionPage() {
             />
             <button 
               type="submit"
+              disabled={isLoading || !input.trim()}
               className="absolute right-2 p-3 bg-primary text-primary-foreground rounded-2xl hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100"
             >
               <Send size={20} />
