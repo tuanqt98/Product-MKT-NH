@@ -4,6 +4,9 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export const maxDuration = 60;
 
+// TEST ONLY: HARDCODED API KEY TO BYPASS VERCEL ENV ISSUES
+const HARDCODED_KEY = "AIzaSyDp_dLf3CR9ySFADw8gd_qfxRnJrqpiAVg";
+
 export async function POST(req: Request) {
   try {
     const { messages, skillId } = await req.json();
@@ -21,32 +24,25 @@ export async function POST(req: Request) {
 
     const systemPrompt = `BẠN LÀ CHUYÊN GIA MARKETING NHẬT HÀN.\nCONTEXT: ${productContext}\nSKILL: ${skillContent}`;
 
-    // 2. Clean API Key (CRITICAL: Remove any accidental spaces/newlines)
-    const rawApiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-    const apiKey = rawApiKey?.trim();
-    
-    if (!apiKey) return new Response(JSON.stringify({ error: "API Key chưa được cấu hình trên Vercel." }), { status: 500 });
-
+    // Use Hardcoded Key for this debug build
+    const apiKey = HARDCODED_KEY;
     const genAI = new GoogleGenerativeAI(apiKey);
 
-    // 3. Ultra-compatible model list
-    const modelsToTry = ["gemini-1.5-flash", "gemini-pro", "gemini-1.5-flash-8b"];
+    const modelsToTry = ["gemini-1.5-flash", "gemini-pro"];
     let lastError = "";
 
     for (const modelName of modelsToTry) {
       try {
-        console.log(`Final attempt with ${modelName}...`);
+        console.log(`Debug Hardcoded Attempt with ${modelName}...`);
         const model = genAI.getGenerativeModel({ model: modelName });
 
-        // Prepend system prompt to the VERY FIRST message instead of using systemInstruction field
-        // This is the most compatible way for all API versions
         let chatMessages = messages.map((m: any) => ({
           role: m.role === 'user' ? 'user' : 'model',
           parts: [{ text: m.content }]
         }));
 
         if (chatMessages.length > 0) {
-          chatMessages[0].parts[0].text = `[HƯỚNG DẪN HỆ THỐNG]\n${systemPrompt}\n\n[YÊU CẦU NGƯỜI DÙNG]\n${chatMessages[0].parts[0].text}`;
+          chatMessages[0].parts[0].text = `[SYSTEM]\n${systemPrompt}\n\n[USER]\n${chatMessages[0].parts[0].text}`;
         }
 
         const result = await model.generateContentStream({ contents: chatMessages });
@@ -59,11 +55,8 @@ export async function POST(req: Request) {
                 const chunkText = chunk.text();
                 if (chunkText) controller.enqueue(encoder.encode(chunkText));
               }
-            } catch (err: any) {
-              console.error("Stream error:", err);
-            } finally {
-              controller.close();
-            }
+            } catch (err: any) { console.error("Stream error:", err); }
+            finally { controller.close(); }
           },
         });
 
@@ -76,7 +69,7 @@ export async function POST(req: Request) {
     }
 
     return new Response(JSON.stringify({ 
-      error: "Tất cả nỗ lực kết nối AI đều thất bại. Có thể do API Key của bạn bị Google từ chối.",
+      error: "Hardcoded Key cũng thất bại. Vui lòng kiểm tra lại tính hợp lệ của mã API Key tại Google AI Studio.",
       details: lastError
     }), { status: 429 });
 
