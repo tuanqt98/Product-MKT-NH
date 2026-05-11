@@ -8,15 +8,11 @@ export async function POST(req: Request) {
   try {
     const { messages, skillId } = await req.json();
 
-    // 1. Read Product Context
-    // On Vercel, files are relative to the project root. On local dev, they might be in ../
     const contextPath = fs.existsSync(path.join(process.cwd(), '.agents/product-marketing-context.md'))
       ? path.join(process.cwd(), '.agents/product-marketing-context.md')
       : path.join(process.cwd(), '../.agents/product-marketing-context.md');
-      
     let productContext = fs.existsSync(contextPath) ? fs.readFileSync(contextPath, 'utf8') : "";
 
-    // 2. Read Selected Skill
     const skillPath = fs.existsSync(path.join(process.cwd(), `skills/${skillId}/SKILL.md`))
       ? path.join(process.cwd(), `skills/${skillId}/SKILL.md`)
       : path.join(process.cwd(), `../skills/${skillId}/SKILL.md`);
@@ -34,26 +30,32 @@ YÊU CẦU:
 2. Nếu thông tin người dùng cung cấp thiếu, hãy yêu cầu bổ sung.
 3. Định dạng kết quả bằng Markdown đẹp mắt.`;
 
-    // Build request for Google Generative AI API directly
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: "API Key chưa được cấu hình" }), { status: 500 });
+      return new Response(JSON.stringify({ error: "API Key chưa được cấu hình trong Environment Variables của Vercel." }), { status: 500 });
     }
 
-    // Try models in order of priority (lighter models have higher free quota)
-    const modelsToTry = ['gemini-2.5-flash-lite', 'gemini-2.0-flash-lite', 'gemini-2.0-flash', 'gemini-2.5-flash'];
+    // Comprehensive list of models to try as fallbacks
+    const modelsToTry = [
+      'gemini-1.5-flash-latest', 
+      'gemini-1.5-flash', 
+      'gemini-1.5-flash-8b', 
+      'gemini-2.0-flash-exp', 
+      'gemini-2.0-flash-lite-preview-02-05',
+      'gemini-2.0-flash',
+      'gemini-pro',
+      'gemini-1.5-pro'
+    ];
     
-    // Convert messages to Google API format
     const contents = messages.map((m: any) => ({
       role: m.role === 'user' ? 'user' : 'model',
       parts: [{ text: m.content }]
     }));
 
-    let lastError = "";
+    let detailedErrors: string[] = [];
 
     for (const modelName of modelsToTry) {
       console.log(`Trying model: ${modelName}...`);
-      
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?alt=sse&key=${apiKey}`;
 
       try {
@@ -63,82 +65,68 @@ YÊU CẦU:
           body: JSON.stringify({
             contents,
             systemInstruction: { parts: [{ text: systemPrompt }] },
-            generationConfig: {
-              temperature: 0.8,
-              maxOutputTokens: 8192,
-            }
+            generationConfig: { temperature: 0.8, maxOutputTokens: 4096 }
           })
         });
 
         if (!googleRes.ok) {
-          const errorData = await googleRes.text();
-          console.error(`Model ${modelName} failed (${googleRes.status}):`, errorData.substring(0, 200));
-          lastError = `${modelName}: ${googleRes.status}`;
-          continue; // Try next model
+          const errorText = await googleRes.text();
+          let errorMsg = `Model ${modelName}: ${googleRes.status}`;
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorMsg += ` - ${errorJson.error?.message || errorJson.error?.status || 'Unknown error'}`;
+          } catch {
+            errorMsg += ` - ${errorText.substring(0, 100)}`;
+          }
+          console.error(errorMsg);
+          detailedErrors.push(errorMsg);
+          continue; 
         }
 
-        console.log(`✅ Model ${modelName} responded successfully!`);
-
-        // Stream the SSE response back to client as plain text
         const reader = googleRes.body?.getReader();
         const decoder = new TextDecoder();
-
         const stream = new ReadableStream({
           async start(controller) {
             try {
               while (reader) {
                 const { done, value } = await reader.read();
                 if (done) break;
-
                 const chunk = decoder.decode(value, { stream: true });
                 const lines = chunk.split('\n');
-
                 for (const line of lines) {
                   if (line.startsWith('data: ')) {
-                    const jsonStr = line.substring(6).trim();
-                    if (jsonStr === '[DONE]') continue;
                     try {
+                      const jsonStr = line.substring(6).trim();
+                      if (jsonStr === '[DONE]') continue;
                       const parsed = JSON.parse(jsonStr);
                       const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
-                      if (text) {
-                        controller.enqueue(new TextEncoder().encode(text));
-                      }
-                    } catch {
-                      // Skip unparseable lines
-                    }
+                      if (text) controller.enqueue(new TextEncoder().encode(text));
+                    } catch {}
                   }
                 }
               }
-            } catch (e) {
-              console.error("Stream error:", e);
-            } finally {
-              controller.close();
-            }
+            } finally { controller.close(); }
           }
         });
 
-        return new Response(stream, {
-          headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-        });
+        return new Response(stream, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
 
       } catch (fetchError: any) {
-        console.error(`Model ${modelName} fetch error:`, fetchError.message);
-        lastError = fetchError.message;
+        detailedErrors.push(`Fetch error for ${modelName}: ${fetchError.message}`);
         continue;
       }
     }
 
     // All models failed
     return new Response(
-      JSON.stringify({ error: `Tất cả các model AI đều đang quá tải. Vui lòng thử lại sau 1 phút.\nChi tiết: ${lastError}` }),
+      JSON.stringify({ 
+        error: "Toàn bộ hệ thống AI đang tạm thời hết hạn mức (Quota Exceeded) cho gói miễn phí. \n\nVui lòng thử lại sau vài phút hoặc kiểm tra thông báo chi tiết bên dưới:",
+        details: detailedErrors.join('\n')
+      }),
       { status: 429, headers: { 'Content-Type': 'application/json' } }
     );
 
   } catch (error: any) {
-    console.error("Critical API Error:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
 }
