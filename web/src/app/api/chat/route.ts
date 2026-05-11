@@ -32,28 +32,39 @@ YÊU CẦU: Luôn sử dụng ngôn ngữ chuyên nghiệp, tận tâm. Định 
 
     const genAI = new GoogleGenerativeAI(apiKey);
 
-    // Try models in order of stability and quota
-    const modelsToTry = [
-      "gemini-1.5-flash",
-      "gemini-1.5-pro",
-      "gemini-1.5-flash-8b"
+    // Ultimate fallback list
+    const configs = [
+      { name: "gemini-1.5-flash", useSystem: true },
+      { name: "gemini-1.5-flash", useSystem: false }, // Try without system instruction if 404
+      { name: "gemini-pro", useSystem: false },       // Classic model
+      { name: "gemini-1.5-pro", useSystem: true }
     ];
 
     let lastError = "";
 
-    for (const modelName of modelsToTry) {
+    for (const config of configs) {
       try {
-        const model = genAI.getGenerativeModel({ 
-          model: modelName,
-          systemInstruction: systemPrompt 
-        });
+        console.log(`Trying ${config.name} (system: ${config.useSystem})...`);
+        
+        const modelOptions: any = { model: config.name };
+        if (config.useSystem) {
+          modelOptions.systemInstruction = systemPrompt;
+        }
 
-        const chatMessages = messages.map((m: any) => ({
+        const model = genAI.getGenerativeModel(modelOptions);
+
+        let chatMessages = messages.map((m: any) => ({
           role: m.role === 'user' ? 'user' : 'model',
           parts: [{ text: m.content }]
         }));
 
-        // Use streaming
+        // If not using systemInstruction field, prepend it to the first message
+        if (!config.useSystem) {
+          if (chatMessages.length > 0 && chatMessages[0].role === 'user') {
+            chatMessages[0].parts[0].text = `[SYSTEM INSTRUCTION]\n${systemPrompt}\n\n[USER REQUEST]\n${chatMessages[0].parts[0].text}`;
+          }
+        }
+
         const result = await model.generateContentStream({
           contents: chatMessages,
         });
@@ -64,9 +75,7 @@ YÊU CẦU: Luôn sử dụng ngôn ngữ chuyên nghiệp, tận tâm. Định 
             try {
               for await (const chunk of result.stream) {
                 const chunkText = chunk.text();
-                if (chunkText) {
-                  controller.enqueue(encoder.encode(chunkText));
-                }
+                if (chunkText) controller.enqueue(encoder.encode(chunkText));
               }
             } catch (err: any) {
               console.error("Stream error:", err);
@@ -76,19 +85,16 @@ YÊU CẦU: Luôn sử dụng ngôn ngữ chuyên nghiệp, tận tâm. Định 
           },
         });
 
-        return new Response(stream, {
-          headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-        });
+        return new Response(stream, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
 
       } catch (err: any) {
-        lastError += `\n- ${modelName}: ${err.message}`;
-        console.warn(`Model ${modelName} failed:`, err.message);
+        lastError += `\n- ${config.name} (sys:${config.useSystem}): ${err.message}`;
         continue;
       }
     }
 
     return new Response(JSON.stringify({ 
-      error: "Tất cả các dòng AI đều đang quá tải hoặc hết hạn mức.",
+      error: "Không thể kết nối với AI. Có thể do API Key của bạn chưa được kích hoạt đầy đủ model này.",
       details: lastError
     }), { status: 429 });
 
