@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 
 const menuItems = [
   { name: 'Dashboard', icon: LayoutDashboard, href: '/' },
-  { name: 'Chiến lược', icon: BarChart3, href: '/strategy' },
+  { name: 'Facebook Insights', icon: BarChart3, href: '/strategy/facebook-insights' },
   { name: 'Nội dung', icon: FileText, href: '/content' },
   { name: 'Video Script', icon: Video, href: '/video' },
   { name: 'Quảng cáo', icon: Megaphone, href: '/ads' },

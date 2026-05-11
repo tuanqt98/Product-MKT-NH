@@ -33,7 +33,7 @@
 | 2.1 | **Đăng nhập / Phân quyền** | Bảo vệ hệ thống, chỉ nhân viên NH truy cập | NextAuth.js + Google OAuth hoặc PIN đơn giản |
 | 2.2 | **Quản lý cuộc hội thoại** | Danh sách các cuộc chat cũ, đặt tên, tìm kiếm | localStorage → Supabase |
 | 2.3 | **Multi-language output** | AI trả kết quả song ngữ Việt-Anh cho khách quốc tế | Prompt engineering |
-| 2.4 | **Gợi ý prompt thông minh** | Mỗi skill hiện 3-5 câu hỏi gợi ý phù hợp nhất | Đọc SKILL.md + parse |
+| 2.4 | ~~**Gợi ý prompt thông minh**~~ | ✅ Đã hoàn thành — 20+ skills có gợi ý riêng | Đọc SKILL.md + parse |
 | 2.5 | **Chế độ so sánh** | So sánh 2 kết quả AI cạnh nhau (A/B testing nội dung) | UI split-view |
 
 ---
@@ -43,7 +43,7 @@
 | # | Tính năng | Mô tả | Công nghệ |
 |---|-----------|-------|-----------|
 | 3.1 | **Kết nối Facebook Graph API** | Tự động đăng bài lên Fanpage từ nội dung AI | Facebook Graph API v19 |
-| 3.2 | **Dashboard chỉ số Facebook** | Biểu đồ Reach, Engagement, CPC realtime | Chart.js + Facebook Insights API |
+| 3.2 | ~~**Dashboard chỉ số Facebook**~~ | ✅ Đã hoàn thành UI Dashboard chuyên nghiệp | Chart.js/Recharts + Facebook Insights API |
 | 3.3 | **Kết nối Zalo OA** | Gửi tin nhắn ZNS tự động cho khách hàng | Zalo OA API |
 | 3.4 | **Lập lịch đăng bài** | Hẹn giờ đăng nội dung lên Facebook/Zalo | Cron job (Vercel Cron) |
 | 3.5 | **Quản lý tin nhắn Messenger** | Đọc/trả lời tin nhắn Fanpage ngay trên NH AI | Facebook Webhook |
