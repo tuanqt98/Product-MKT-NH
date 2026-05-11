@@ -11,12 +11,14 @@ import {
   Users, 
   Settings, 
   BarChart3,
-  ChevronRight
+  ChevronRight,
+  LayoutGrid
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const menuItems = [
   { name: 'Dashboard', icon: LayoutDashboard, href: '/' },
+  { name: 'Thư viện AI', icon: LayoutGrid, href: '/skills' },
   { name: 'Facebook Insights', icon: BarChart3, href: '/strategy/facebook-insights' },
   { name: 'Nội dung', icon: FileText, href: '/content' },
   { name: 'Video Script', icon: Video, href: '/video' },
