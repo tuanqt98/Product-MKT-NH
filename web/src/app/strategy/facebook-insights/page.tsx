@@ -24,7 +24,8 @@ import {
   ArrowDownRight,
   Target,
   Info,
-  Calendar
+  Calendar,
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
