@@ -52,8 +52,8 @@ export default function Sidebar() {
 
       {/* Sidebar Content */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-40 w-72 h-screen glass border-r flex flex-col transform transition-all duration-300 ease-out lg:translate-x-0",
-        isOpen ? "translate-x-0" : "-translate-x-full"
+        "fixed lg:sticky inset-y-0 left-0 z-40 w-72 h-screen glass border-r flex flex-col transform transition-all duration-300 ease-out",
+        isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
         <div className="p-8">
           <div className="flex items-center gap-3 mb-1">

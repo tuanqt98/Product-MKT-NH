@@ -32,9 +32,9 @@ export default function RootLayout({
   return (
     <html lang="vi" className="dark" suppressHydrationWarning>
       <body className={cn(inter.className, "mesh-gradient min-h-screen")}>
-        <div className="flex min-h-screen overflow-x-hidden">
+        <div className="flex min-h-screen">
           <Sidebar />
-          <main className="flex-1 lg:ml-72 min-h-screen relative w-full">
+          <main className="flex-1 min-h-screen relative w-full overflow-x-hidden">
             <div className="p-4 md:p-8 lg:p-12 max-w-[1600px] mx-auto">
               {children}
             </div>
