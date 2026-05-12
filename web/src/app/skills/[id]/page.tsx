@@ -167,6 +167,48 @@ export default function SkillExecutionPage() {
     }
   };
 
+  const exportPDF = useCallback(() => {
+    const chatContent = messages.filter(m => m.role === 'assistant')
+      .map(m => `
+        <div class="message-container">
+          <div class="content">${m.content}</div>
+        </div>
+      `).join('<hr>');
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>${skill?.name || 'Marketing Report'}</title>
+            <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+            <style>
+              body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; line-height: 1.6; }
+              h1 { color: #4f46e5; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+              .message-container { margin-bottom: 30px; }
+              table { border-collapse: collapse; width: 100%; margin: 20px 0; border: 1px solid #e2e8f0; }
+              th, td { border: 1px solid #e2e8f0; padding: 12px; text-align: left; }
+              th { bg-color: #f8fafc; font-weight: bold; color: #4f46e5; }
+              tr:nth-child(even) { background-color: #f1f5f9; }
+              blockquote { border-left: 4px solid #4f46e5; padding-left: 20px; color: #64748b; font-style: italic; }
+              code { background: #f1f5f9; padding: 2px 4px; rounded: 4px; font-size: 0.9em; }
+              hr { border: 0; border-top: 1px solid #e2e8f0; margin: 40px 0; }
+            </style>
+          </head>
+          <body>
+            <h1>${skill?.name || 'Nhật Hàn AI - Marketing Report'}</h1>
+            <div id="content"></div>
+            <script>
+              document.getElementById('content').innerHTML = marked.parse(\`${messages.filter(m => m.role === 'assistant').map(m => m.content).join('\n\n---\n\n').replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`);
+              setTimeout(() => { window.print(); }, 500);
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+  }, [messages, skill]);
+
   useEffect(() => {
     fetch(`/api/skills/${id}`).then(res => res.json()).then(data => { setSkill(data); setLoading(false); });
   }, [id]);
@@ -202,9 +244,20 @@ export default function SkillExecutionPage() {
             <button onClick={() => router.push('/')} className="p-2 hover:bg-white/5 rounded-full transition-colors"><ArrowLeft size={20} /></button>
             <div><h2 className="text-lg font-bold">{skill?.name}</h2><p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Chế độ thực thi</p></div>
           </div>
-          <button onClick={() => setIsCompareMode(!isCompareMode)} className={cn("px-4 py-2 rounded-xl text-xs font-bold border transition-all", isCompareMode ? "bg-primary text-white" : "glass")}>
-            <Columns size={14} className="inline mr-2" /> {isCompareMode ? "Đang so sánh" : "So sánh A/B"}
-          </button>
+          
+          <div className="flex gap-2">
+            <button 
+              onClick={exportPDF} 
+              className="glass px-4 py-2 rounded-xl text-xs font-bold hover:bg-accent border-white/5 flex items-center gap-2"
+            >
+              <Download size={14} />
+              Xuất PDF
+            </button>
+            
+            <button onClick={() => setIsCompareMode(!isCompareMode)} className={cn("px-4 py-2 rounded-xl text-xs font-bold border transition-all", isCompareMode ? "bg-primary text-white" : "glass")}>
+              <Columns size={14} className="inline mr-2" /> {isCompareMode ? "Đang so sánh" : "So sánh A/B"}
+            </button>
+          </div>
         </header>
 
         <main className="flex-1 flex overflow-hidden relative">
