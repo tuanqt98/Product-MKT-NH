@@ -54,6 +54,13 @@ export default function FacebookInsightsPage() {
   const [recentPosts, setRecentPosts] = React.useState<any[]>([]);
   const [isConnected, setIsConnected] = React.useState(false);
 
+  const [summaryStats, setSummaryStats] = React.useState({
+    reach: 42500,
+    engagement: 3840,
+    views: 1250,
+    newFans: 45
+  });
+
   React.useEffect(() => {
     fetch('/api/facebook/insights')
       .then(res => res.json())
@@ -65,6 +72,7 @@ export default function FacebookInsightsPage() {
           if (result.chartData) {
             setChartData(result.chartData);
             setIsRealData(true);
+            setSummaryStats(result.stats);
           }
         }
         setLoading(false);
@@ -76,36 +84,36 @@ export default function FacebookInsightsPage() {
 
   const stats = [
     { 
-      name: 'Tổng Tiếp Cận (Reach)', 
-      value: isRealData ? chartData.reduce((acc, curr) => acc + curr.reach, 0).toLocaleString() : '42,500', 
+      name: 'Lượt tiếp cận (Reach)', 
+      value: summaryStats.reach.toLocaleString(), 
       change: '+12.5%', 
       isPositive: true, 
       icon: Eye, 
       color: 'text-blue-400' 
     },
     { 
-      name: 'Lượt Tương Tác', 
-      value: isRealData ? chartData.reduce((acc, curr) => acc + curr.engagement, 0).toLocaleString() : '3,840', 
+      name: 'Lượt tương tác', 
+      value: summaryStats.engagement.toLocaleString(), 
       change: '+8.2%', 
       isPositive: true, 
       icon: Users, 
       color: 'text-green-400' 
     },
     { 
-      name: 'Click Liên Hệ/Báo Giá', 
-      value: isRealData ? chartData.reduce((acc, curr) => acc + curr.clicks, 0).toLocaleString() : '930', 
-      change: '-2.4%', 
-      isPositive: false, 
+      name: 'Lượt xem Trang', 
+      value: summaryStats.views.toLocaleString(), 
+      change: '+15.4%', 
+      isPositive: true, 
       icon: MousePointer2, 
       color: 'text-purple-400' 
     },
     { 
-      name: 'Chi Phí Trung Bình (CPC)', 
-      value: isRealData ? '2,100đ' : '2,450đ', 
-      change: '-15%', 
+      name: 'Fan mới (Followers)', 
+      value: summaryStats.newFans.toLocaleString(), 
+      change: '+5.1%', 
       isPositive: true, 
-      icon: TrendingUp, 
-      color: 'text-yellow-400' 
+      icon: BarChart3, 
+      color: 'text-orange-400' 
     },
   ];
   return (
