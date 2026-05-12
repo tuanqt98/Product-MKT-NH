@@ -87,50 +87,49 @@ export default function AllSkillsPage() {
   }, [skills, searchTerm, activeCategory]);
 
   return (
-    <div className="space-y-10 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-      <header className="relative py-10 px-8 rounded-[3rem] overflow-hidden bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-white/10">
-        <div className="absolute top-0 right-0 p-10 opacity-10">
+    <div className="space-y-6 md:space-y-10 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+      <header className="relative p-6 md:p-10 lg:p-16 rounded-[2rem] md:rounded-[3rem] overflow-hidden bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-white/10">
+        <div className="absolute top-0 right-0 p-10 opacity-10 hidden md:block">
           <Sparkles size={150} className="text-primary" />
         </div>
-        <div className="relative z-10 max-w-2xl">
-          <div className="flex items-center gap-3 mb-4">
+        <div className="relative z-10 max-w-2xl text-center md:text-left flex flex-col items-center md:items-start">
+          <div className="flex flex-col md:flex-row items-center gap-3 mb-6">
             <div className="p-3 bg-primary text-white rounded-2xl shadow-lg shadow-primary/30">
-              <LayoutGrid size={28} />
+              <LayoutGrid size={24} className="md:w-7 md:h-7" />
             </div>
-            <h2 className="text-4xl font-black tracking-tight">Thư viện Kỹ năng AI</h2>
+            <h2 className="text-2xl md:text-4xl lg:text-5xl font-black tracking-tight mt-2 md:mt-0">Thư viện Kỹ năng AI</h2>
           </div>
-          <p className="text-lg text-white/60 leading-relaxed">
+          <p className="text-sm md:text-lg text-white/60 leading-relaxed max-w-lg">
             Hệ thống 29 kỹ năng chuyên gia được huấn luyện riêng biệt cho đội ngũ Marketing Nhật Hàn. 
-            Tối ưu hóa quy trình từ lập kế hoạch đến thực thi đa kênh.
           </p>
         </div>
       </header>
 
-      <div className="sticky top-4 z-30 flex flex-col md:flex-row gap-4 items-center bg-background/60 backdrop-blur-2xl p-4 rounded-[2.5rem] border border-white/5 shadow-2xl">
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-white/20" size={20} />
+      <div className="sticky top-4 md:top-8 z-30 flex flex-col md:flex-row gap-3 md:gap-4 items-center bg-background/40 backdrop-blur-3xl p-3 md:p-4 rounded-[2rem] md:rounded-[2.5rem] border border-white/10 shadow-2xl">
+        <div className="relative w-full md:w-80 lg:w-96">
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-white/40" size={18} />
           <input 
             type="text" 
             placeholder="Tìm kiếm sức mạnh AI..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-3xl py-3.5 pl-14 pr-6 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm font-medium"
+            className="w-full bg-white/5 border border-white/5 rounded-2xl md:rounded-3xl py-3 pl-12 pr-6 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-xs md:text-sm font-medium"
           />
         </div>
         
-        <div className="flex gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 no-scrollbar">
+        <div className="flex gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 no-scrollbar snap-x">
           {categories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
               className={cn(
-                "px-6 py-3 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2 border",
+                "px-5 py-2.5 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2 border snap-start",
                 activeCategory === cat.id 
-                  ? "bg-primary text-white border-primary shadow-xl shadow-primary/20 scale-105" 
+                  ? "bg-primary text-white border-primary shadow-lg shadow-primary/25 scale-105" 
                   : "bg-white/5 text-white/40 border-transparent hover:bg-white/10 hover:text-white"
               )}
             >
-              <cat.icon size={14} />
+              <cat.icon size={12} className="md:w-3.5 md:h-3.5" />
               {cat.name}
             </button>
           ))}

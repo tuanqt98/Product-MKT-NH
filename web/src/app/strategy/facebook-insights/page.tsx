@@ -119,22 +119,22 @@ export default function FacebookInsightsPage() {
   ];
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <header className="flex justify-between items-center">
+      <header className="flex flex-col md:flex-row md:justify-between md:items-center gap-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Target className="text-blue-500" size={20} />
-            <h2 className="text-3xl font-bold">Facebook Insights</h2>
+            <h2 className="text-2xl md:text-3xl font-black tracking-tight">Facebook Insights</h2>
           </div>
-          <p className="text-muted-foreground">Phân tích hiệu quả marketing trên nền tảng Meta cho Nhật Hàn</p>
+          <p className="text-sm text-muted-foreground">Phân tích hiệu quả marketing realtime cho Nhật Hàn</p>
         </div>
         <div className="flex gap-3">
-          <button className="glass px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 hover:bg-accent transition-colors">
-            <Calendar size={16} />
+          <button className="glass px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-accent transition-colors">
+            <Calendar size={14} />
             7 ngày qua
           </button>
-          <button className="bg-primary text-primary-foreground px-6 py-2 rounded-xl text-sm font-bold hover:scale-105 transition-transform flex items-center gap-2">
-            Kết nối Facebook thật
-            <ArrowUpRight size={16} />
+          <button className="bg-primary text-primary-foreground px-5 py-2.5 rounded-xl text-xs font-black hover:scale-105 transition-transform flex items-center gap-2 shadow-lg shadow-primary/20">
+            Kết nối Facebook
+            <ArrowUpRight size={14} />
           </button>
         </div>
       </header>
@@ -165,19 +165,19 @@ export default function FacebookInsightsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Chart */}
-        <div className="lg:col-span-2 glass p-8 rounded-[2.5rem] border border-white/5">
-          <div className="flex justify-between items-center mb-8">
+        <div className="lg:col-span-2 glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-white/5">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-8">
             <div>
-              <h3 className="text-xl font-bold">Xu hướng Tiếp cận & Tương tác</h3>
-              <p className="text-sm text-muted-foreground">Dữ liệu tổng hợp từ chiến dịch bao bì & in ấn</p>
+              <h3 className="text-lg md:text-xl font-bold">Xu hướng Tiếp cận & Tương tác</h3>
+              <p className="text-xs md:text-sm text-muted-foreground">Dữ liệu tổng hợp từ chiến dịch bao bì & in ấn</p>
             </div>
-            <div className="flex gap-4 text-xs font-medium">
+            <div className="flex gap-4 text-[10px] md:text-xs font-bold uppercase tracking-wider opacity-60">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-blue-500" />
+                <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
                 <span>Tiếp cận</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-green-500" />
+                <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
                 <span>Tương tác</span>
               </div>
             </div>
@@ -304,55 +304,57 @@ export default function FacebookInsightsPage() {
         </div>
 
         {isConnected ? (
-          <div className="bg-gradient-to-br from-green-600/40 to-emerald-800/40 border border-green-500/20 p-10 rounded-[2.5rem] flex flex-col justify-center relative overflow-hidden group">
-            <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:scale-110 transition-transform duration-700">
+          <div className="bg-gradient-to-br from-green-600/40 to-emerald-800/40 border border-green-500/20 p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] flex flex-col justify-center relative overflow-hidden group">
+            <div className="absolute -right-10 -bottom-10 opacity-5 group-hover:scale-110 transition-transform duration-700 hidden md:block">
               <Target size={240} />
             </div>
             <div className="relative z-10">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse" />
-                <span className="text-sm font-bold text-green-400 uppercase tracking-wider">Đã kết nối</span>
+                <div className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-[10px] font-black text-green-400 uppercase tracking-[0.2em]">Đã kết nối Fanpage</span>
               </div>
-              <h3 className="text-2xl font-bold mb-2">{pageInfo?.name || "Fanpage"}</h3>
-              <div className="flex gap-6 text-sm text-white/60 mb-6">
-                <span>👥 {pageInfo?.followers || 0} người theo dõi</span>
-                <span>❤️ {pageInfo?.fans || 0} lượt thích</span>
+              <h3 className="text-xl md:text-2xl font-black mb-2 tracking-tight">{pageInfo?.name || "Fanpage Nhật Hàn"}</h3>
+              <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs font-bold text-white/50 mb-6 uppercase tracking-wider">
+                <span>👥 {pageInfo?.followers || 0} Followers</span>
+                <span>❤️ {pageInfo?.fans || 0} Likes</span>
               </div>
               
               {recentPosts.length > 0 && (
                 <div className="space-y-3">
-                  <h4 className="text-sm font-bold text-white/80">Bài viết gần đây:</h4>
-                  {recentPosts.slice(0, 3).map((post: any) => (
-                    <div key={post.id} className="bg-white/5 rounded-xl p-3 text-xs">
-                      <p className="text-white/70 line-clamp-2 mb-2">{post.message}</p>
-                      <div className="flex gap-4 text-white/40">
-                        <span>👍 {post.likes}</span>
-                        <span>💬 {post.comments}</span>
-                        <span>🔄 {post.shares}</span>
+                  <h4 className="text-xs font-black text-white/80 uppercase tracking-widest opacity-60">Bài viết gần đây:</h4>
+                  <div className="grid grid-cols-1 gap-2">
+                    {recentPosts.slice(0, 3).map((post: any) => (
+                      <div key={post.id} className="bg-white/5 backdrop-blur-md rounded-2xl p-4 text-[11px] border border-white/5">
+                        <p className="text-white/80 line-clamp-2 mb-3 font-medium leading-relaxed">{post.message}</p>
+                        <div className="flex gap-4 text-white/40 font-bold uppercase tracking-tighter">
+                          <span className="flex items-center gap-1">👍 {post.likes}</span>
+                          <span className="flex items-center gap-1">💬 {post.comments}</span>
+                          <span className="flex items-center gap-1">🔄 {post.shares}</span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
           </div>
         ) : (
-          <div className="bg-gradient-to-br from-indigo-600/40 to-purple-800/40 border border-white/10 p-10 rounded-[2.5rem] flex flex-col justify-center relative overflow-hidden group">
-            <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:scale-110 transition-transform duration-700">
+          <div className="bg-gradient-to-br from-indigo-600/40 to-purple-800/40 border border-white/10 p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] flex flex-col justify-center relative overflow-hidden group">
+            <div className="absolute -right-10 -bottom-10 opacity-5 group-hover:scale-110 transition-transform duration-700 hidden md:block">
               <Target size={240} />
             </div>
             <div className="relative z-10">
-              <h3 className="text-3xl font-bold mb-4">Kết nối API Facebook</h3>
-              <p className="text-white/70 mb-8 max-w-md leading-relaxed">
-                Bạn cần cung cấp Access Token từ Meta for Developers để hệ thống tự động cập nhật dữ liệu realtime từ Fanpage Nhật Hàn.
+              <h3 className="text-2xl md:text-3xl font-black mb-4 tracking-tighter">Kết nối API Facebook</h3>
+              <p className="text-white/70 mb-8 max-w-md text-sm leading-relaxed font-medium">
+                Cung cấp Access Token để hệ thống tự động cập nhật dữ liệu realtime từ Fanpage Nhật Hàn.
               </p>
-              <div className="flex gap-4">
-                <button className="bg-white text-indigo-900 px-8 py-3 rounded-xl font-bold hover:shadow-xl hover:shadow-white/10 transition-all">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button className="bg-white text-indigo-900 px-6 py-3.5 rounded-xl font-black text-xs hover:shadow-xl hover:shadow-white/10 transition-all uppercase tracking-wider">
                   Dán Token ngay
                 </button>
-                <button className="bg-white/10 text-white px-8 py-3 rounded-xl font-bold hover:bg-white/20 transition-all flex items-center gap-2">
-                  <Info size={18} />
-                  Hướng dẫn lấy Token
+                <button className="bg-white/10 text-white px-6 py-3.5 rounded-xl font-black text-xs hover:bg-white/20 transition-all flex items-center justify-center gap-2 uppercase tracking-wider">
+                  <Info size={14} />
+                  Hướng dẫn
                 </button>
               </div>
             </div>
