@@ -1,4 +1,6 @@
-import React from 'react';
+"use client";
+
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { 
   Sparkles, 
@@ -8,19 +10,58 @@ import {
   Zap,
   Target,
   LayoutGrid,
-  ArrowRight
+  ArrowRight,
+  MessageSquare,
+  Share2,
+  ThumbsUp
 } from 'lucide-react';
-
-const stats = [
-  { name: 'Chiến dịch đang chạy', value: '12', icon: Zap, color: 'text-yellow-400' },
-  { name: 'Năng suất AI', value: '+45%', icon: TrendingUp, color: 'text-green-400' },
-  { name: 'Thời gian tối ưu', value: '120h', icon: Clock, color: 'text-blue-400' },
-  { name: 'Mục tiêu tháng', value: '85%', icon: Target, color: 'text-purple-400' },
-];
+import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
+  const [stats, setStats] = useState([
+    { name: 'Lượt tiếp cận (7đ)', value: '0', icon: Zap, color: 'text-yellow-400' },
+    { name: 'Lượt tương tác', value: '0', icon: TrendingUp, color: 'text-green-400' },
+    { name: 'Lượt xem Trang', value: '0', icon: Clock, color: 'text-blue-400' },
+    { name: 'Followers mới', value: '0', icon: Target, color: 'text-purple-400' },
+  ]);
+
+  const [history, setHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/facebook/insights')
+      .then(res => res.json())
+      .then(data => {
+        if (data.connected && data.stats) {
+          setStats([
+            { name: 'Lượt tiếp cận (7đ)', value: data.stats.reach.toLocaleString(), icon: Zap, color: 'text-yellow-400' },
+            { name: 'Lượt tương tác', value: data.stats.engagement.toLocaleString(), icon: TrendingUp, color: 'text-green-400' },
+            { name: 'Lượt xem Trang', value: data.stats.views.toLocaleString(), icon: Clock, color: 'text-blue-400' },
+            { name: 'Followers mới', value: data.stats.newFans.toLocaleString(), icon: Target, color: 'text-purple-400' },
+          ]);
+          setHistory(data.recentPosts || []);
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
+
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diff < 60) return 'Vừa xong';
+    if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} giờ trước`;
+    return `${Math.floor(diff / 86400)} ngày trước`;
+  };
+
   return (
-    <div className="space-y-10 animate-in fade-in duration-700">
+    <div className="space-y-6 md:space-y-10 animate-in fade-in duration-700">
       <header className="flex flex-col lg:flex-row lg:justify-between lg:items-end gap-6">
         <div>
           <h2 className="text-2xl md:text-3xl font-black tracking-tight">Chào buổi sáng, Sếp!</h2>
@@ -28,7 +69,7 @@ export default function Dashboard() {
         </div>
         <div className="w-fit bg-primary/10 border border-primary/20 px-4 py-2 rounded-full flex items-center gap-2 text-primary text-xs md:text-sm font-bold">
           <Sparkles size={14} />
-          AI v2.0 Online
+          {loading ? "Đang đồng bộ..." : "AI v2.0 Online"}
         </div>
       </header>
 
@@ -40,13 +81,15 @@ export default function Dashboard() {
               <div className={`p-3 rounded-2xl bg-background/50 ${stat.color} shadow-inner`}>
                 <stat.icon size={20} />
               </div>
-              <button className="text-muted-foreground hover:text-foreground p-1">
+              <Link href="/strategy/facebook-insights" className="text-muted-foreground hover:text-foreground p-1">
                 <ArrowUpRight size={18} />
-              </button>
+              </Link>
             </div>
             <div>
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{stat.name}</p>
-              <h3 className="text-2xl md:text-3xl font-black mt-1 tracking-tighter">{stat.value}</h3>
+              <h3 className="text-2xl md:text-3xl font-black mt-1 tracking-tighter">
+                {loading ? "..." : stat.value}
+              </h3>
             </div>
           </div>
         ))}
@@ -108,28 +151,49 @@ export default function Dashboard() {
 
         {/* Side Info */}
         <div className="space-y-6">
-          <div className="glass p-6 rounded-3xl border border-white/5">
-            <h3 className="font-bold mb-4 flex items-center gap-2">
-              <Clock size={18} className="text-blue-400" />
-              Lịch sử gần đây
+          <div className="glass p-6 rounded-[2.5rem] border border-white/5">
+            <h3 className="font-black mb-6 flex items-center gap-2 text-sm uppercase tracking-widest opacity-60">
+              <Clock size={16} className="text-blue-400" />
+              Lịch sử FB Fanpage
             </h3>
             <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center gap-3 p-3 hover:bg-white/5 rounded-2xl transition-colors cursor-pointer">
-                  <div className="w-2 h-2 rounded-full bg-primary" />
-                  <div>
-                    <p className="text-sm font-medium">Kế hoạch Fanpage Facebook</p>
-                    <p className="text-[10px] text-muted-foreground">12 phút trước</p>
+              {loading ? (
+                [1, 2, 3].map(i => <div key={i} className="h-16 w-full bg-white/5 animate-pulse rounded-2xl" />)
+              ) : history.length > 0 ? (
+                history.slice(0, 5).map((post: any) => (
+                  <div key={post.id} className="group flex flex-col gap-2 p-4 hover:bg-white/5 rounded-[1.5rem] transition-all cursor-pointer border border-transparent hover:border-white/5">
+                    <p className="text-[13px] font-medium line-clamp-2 leading-relaxed text-white/80 group-hover:text-white transition-colors">
+                      {post.message}
+                    </p>
+                    <div className="flex items-center justify-between mt-1">
+                      <div className="flex gap-3 text-[10px] font-bold text-white/30 uppercase tracking-tighter">
+                        <span className="flex items-center gap-1"><ThumbsUp size={10} /> {post.likes}</span>
+                        <span className="flex items-center gap-1"><MessageSquare size={10} /> {post.comments}</span>
+                      </div>
+                      <span className="text-[10px] font-bold text-primary/60">{formatTime(post.created_time)}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-xs text-muted-foreground text-center py-10">Chưa có dữ liệu bài viết.</p>
+              )}
             </div>
+            
+            {!loading && history.length > 0 && (
+              <Link href="/strategy/facebook-insights" className="mt-6 w-full flex items-center justify-center gap-2 py-3 text-[11px] font-black uppercase tracking-widest text-primary hover:bg-primary/5 rounded-xl transition-all">
+                Xem tất cả Insights
+                <ArrowRight size={14} />
+              </Link>
+            )}
           </div>
 
-          <div className="bg-gradient-to-br from-indigo-600 to-purple-700 p-6 rounded-3xl text-white">
-            <h3 className="font-bold mb-2">Product Context</h3>
-            <p className="text-xs text-white/80 mb-4">Dịch vụ In ấn Nhật Hàn hiện đã sẵn sàng cho 29 kỹ năng AI.</p>
-            <button className="w-full py-2 bg-white/20 hover:bg-white/30 rounded-xl text-xs font-bold transition-colors">
+          <div className="bg-gradient-to-br from-indigo-600/20 to-purple-700/20 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 relative overflow-hidden group">
+            <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform duration-500">
+              <Target size={120} />
+            </div>
+            <h3 className="text-lg font-black mb-2 relative z-10">Product Context</h3>
+            <p className="text-xs text-white/50 mb-6 leading-relaxed relative z-10">Dịch vụ In ấn Nhật Hàn hiện đã sẵn sàng cho 29 kỹ năng AI.</p>
+            <button className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-[11px] font-black uppercase tracking-widest transition-colors border border-white/5 relative z-10">
               Cập nhật Context
             </button>
           </div>
