@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { 
   Send, ArrowLeft, Bot, User, Loader2, Copy, CheckCircle2, Sparkles,
   Download, Trash2, History, X, ImagePlus, Share2, Columns, 
-  Edit2, Settings2, Zap
+  Edit2, Settings2, Zap, Plus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
