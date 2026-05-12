@@ -50,14 +50,22 @@ export default function FacebookInsightsPage() {
   const [chartData, setChartData] = React.useState(data);
   const [loading, setLoading] = React.useState(true);
   const [isRealData, setIsRealData] = React.useState(false);
+  const [pageInfo, setPageInfo] = React.useState<any>(null);
+  const [recentPosts, setRecentPosts] = React.useState<any[]>([]);
+  const [isConnected, setIsConnected] = React.useState(false);
 
   React.useEffect(() => {
     fetch('/api/facebook/insights')
       .then(res => res.json())
       .then(result => {
-        if (!result.error && Array.isArray(result)) {
-          setChartData(result);
-          setIsRealData(true);
+        if (result.connected) {
+          setIsConnected(true);
+          setPageInfo(result.page);
+          setRecentPosts(result.recentPosts || []);
+          if (result.chartData) {
+            setChartData(result.chartData);
+            setIsRealData(true);
+          }
         }
         setLoading(false);
       })
@@ -286,26 +294,61 @@ export default function FacebookInsightsPage() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-indigo-600/40 to-purple-800/40 border border-white/10 p-10 rounded-[2.5rem] flex flex-col justify-center relative overflow-hidden group">
-          <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:scale-110 transition-transform duration-700">
-            <Target size={240} />
-          </div>
-          <div className="relative z-10">
-            <h3 className="text-3xl font-bold mb-4">Kết nối API Facebook</h3>
-            <p className="text-white/70 mb-8 max-w-md leading-relaxed">
-              Bạn cần cung cấp Access Token từ Meta for Developers để hệ thống tự động cập nhật dữ liệu realtime từ Fanpage Nhật Hàn.
-            </p>
-            <div className="flex gap-4">
-              <button className="bg-white text-indigo-900 px-8 py-3 rounded-xl font-bold hover:shadow-xl hover:shadow-white/10 transition-all">
-                Dán Token ngay
-              </button>
-              <button className="bg-white/10 text-white px-8 py-3 rounded-xl font-bold hover:bg-white/20 transition-all flex items-center gap-2">
-                <Info size={18} />
-                Hướng dẫn lấy Token
-              </button>
+        {isConnected ? (
+          <div className="bg-gradient-to-br from-green-600/40 to-emerald-800/40 border border-green-500/20 p-10 rounded-[2.5rem] flex flex-col justify-center relative overflow-hidden group">
+            <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:scale-110 transition-transform duration-700">
+              <Target size={240} />
+            </div>
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-sm font-bold text-green-400 uppercase tracking-wider">Đã kết nối</span>
+              </div>
+              <h3 className="text-2xl font-bold mb-2">{pageInfo?.name || "Fanpage"}</h3>
+              <div className="flex gap-6 text-sm text-white/60 mb-6">
+                <span>👥 {pageInfo?.followers || 0} người theo dõi</span>
+                <span>❤️ {pageInfo?.fans || 0} lượt thích</span>
+              </div>
+              
+              {recentPosts.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-bold text-white/80">Bài viết gần đây:</h4>
+                  {recentPosts.slice(0, 3).map((post: any) => (
+                    <div key={post.id} className="bg-white/5 rounded-xl p-3 text-xs">
+                      <p className="text-white/70 line-clamp-2 mb-2">{post.message}</p>
+                      <div className="flex gap-4 text-white/40">
+                        <span>👍 {post.likes}</span>
+                        <span>💬 {post.comments}</span>
+                        <span>🔄 {post.shares}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-gradient-to-br from-indigo-600/40 to-purple-800/40 border border-white/10 p-10 rounded-[2.5rem] flex flex-col justify-center relative overflow-hidden group">
+            <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:scale-110 transition-transform duration-700">
+              <Target size={240} />
+            </div>
+            <div className="relative z-10">
+              <h3 className="text-3xl font-bold mb-4">Kết nối API Facebook</h3>
+              <p className="text-white/70 mb-8 max-w-md leading-relaxed">
+                Bạn cần cung cấp Access Token từ Meta for Developers để hệ thống tự động cập nhật dữ liệu realtime từ Fanpage Nhật Hàn.
+              </p>
+              <div className="flex gap-4">
+                <button className="bg-white text-indigo-900 px-8 py-3 rounded-xl font-bold hover:shadow-xl hover:shadow-white/10 transition-all">
+                  Dán Token ngay
+                </button>
+                <button className="bg-white/10 text-white px-8 py-3 rounded-xl font-bold hover:bg-white/20 transition-all flex items-center gap-2">
+                  <Info size={18} />
+                  Hướng dẫn lấy Token
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
