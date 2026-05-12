@@ -6,7 +6,13 @@ export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
-    const { messages, skillId, image } = await req.json();
+    const { messages, skillId, image, variation } = await req.json();
+
+    // variation adjustment for A/B testing
+    let variationInstruction = "";
+    if (variation === 'B') {
+      variationInstruction = "\n\nLƯU Ý: Đây là phương án B. Hãy viết theo một phong cách KHÁC BIỆT hoàn toàn so với thông thường (ví dụ: sáng tạo hơn, ngắn gọn hơn, hoặc tập trung vào cảm xúc hơn) để người dùng có sự so sánh rõ rệt.";
+    }
 
     // 1. Resolve context and skill paths
     const contextPath = fs.existsSync(path.join(process.cwd(), '.agents/product-marketing-context.md'))
@@ -32,7 +38,7 @@ YÊU CẦU:
 1. Luôn sử dụng ngôn ngữ chuyên nghiệp, tận tâm theo Brand Voice của Nhật Hàn.
 2. Nếu thông tin người dùng cung cấp thiếu, hãy yêu cầu bổ sung.
 3. Định dạng kết quả bằng Markdown đẹp mắt.
-4. Nếu người dùng gửi hình ảnh, hãy phân tích chi tiết hình ảnh đó và đưa ra nhận xét/gợi ý marketing phù hợp.`;
+4. Nếu người dùng gửi hình ảnh, hãy phân tích chi tiết hình ảnh đó và đưa ra nhận xét/gợi ý marketing phù hợp.${variationInstruction}`;
 
     // 2. Get API Key
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim();

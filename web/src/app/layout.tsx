@@ -7,13 +7,13 @@ import { cn } from "@/lib/utils";
 const inter = Inter({ subsets: ["latin", "vietnamese"] });
 
 export const metadata: Metadata = {
-  title: "NH Marketing AI - Nhật Hàn",
+  title: "Đời Buồn JQK - Marketing AI",
   description: "Hệ thống quản lý Marketing AI dành riêng cho công ty Nhật Hàn",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "NH Marketing AI",
+    title: "Đời Buồn JQK",
   },
   formatDetection: {
     telephone: false,

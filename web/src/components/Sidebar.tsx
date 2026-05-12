@@ -32,7 +32,7 @@ export default function Sidebar() {
   return (
     <aside className="w-64 h-screen glass border-r fixed left-0 top-0 z-40 flex flex-col">
       <div className="p-6">
-        <h1 className="text-2xl font-bold gradient-text">NH Marketing AI</h1>
+        <h1 className="text-2xl font-bold gradient-text">Đời Buồn JQK</h1>
         <p className="text-xs text-muted-foreground mt-1">Hệ thống quản lý Nhật Hàn</p>
       </div>
 

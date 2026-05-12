@@ -1,4 +1,4 @@
-# 🚀 NH Marketing AI — Lộ Trình Phát Triển Tổng Thể
+# 🚀 Lộ trình Phát triển Dự án Đời Buồn JQK - Hệ thống Marketing AI NH
 
 > Cập nhật lần cuối: 12/05/2026 (Kích hoạt Hệ thống Tự động hóa)
 
@@ -31,10 +31,10 @@
 | # | Tính năng | Mô tả | Công nghệ |
 |---|-----------|-------|-----------|
 | 2.1 | **Đăng nhập / Phân quyền** | Bảo vệ hệ thống, chỉ nhân viên NH truy cập | NextAuth.js + Google OAuth hoặc PIN đơn giản |
-| 2.2 | **Quản lý cuộc hội thoại** | Danh sách các cuộc chat cũ, đặt tên, tìm kiếm | localStorage → Supabase |
+| 2.2 | ~~**Quản lý cuộc hội thoại**~~ | ✅ Đã hoàn thành — Sidebar lịch sử, nhiều session, đổi tên | localStorage → Multiple Sessions |
 | 2.3 | **Multi-language output** | AI trả kết quả song ngữ Việt-Anh cho khách quốc tế | Prompt engineering |
 | 2.4 | ~~**Gợi ý prompt thông minh**~~ | ✅ Đã hoàn thành — 20+ skills có gợi ý riêng | Đọc SKILL.md + parse |
-| 2.5 | **Chế độ so sánh** | So sánh 2 kết quả AI cạnh nhau (A/B testing nội dung) | UI split-view |
+| 2.5 | ~~**Chế độ so sánh**~~ | ✅ Đã hoàn thành — Split-view A/B testing nội dung | UI split-view + Variation API |
 
 ---
 
