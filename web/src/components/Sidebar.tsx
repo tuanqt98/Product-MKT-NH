@@ -25,6 +25,7 @@ const menuItems = [
   { name: 'Nội dung', icon: FileText, href: '/content' },
   { name: 'Video Script', icon: Video, href: '/video' },
   { name: 'Quảng cáo', icon: Megaphone, href: '/ads' },
+  { name: 'Radar Xu hướng', icon: Zap, href: '/strategy/trend-spy' },
   { name: 'Cá nhân hóa', icon: Users, href: '/personal-brand' },
 ];
 

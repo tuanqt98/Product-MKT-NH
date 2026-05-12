@@ -75,6 +75,16 @@
 
 ---
 
+### Giai đoạn 6 — Marketing Intelligence (Mới cập nhật 🚀)
+
+| # | Tính năng | Mô tả | Công nghệ |
+|---|-----------|-------|-----------|
+| 6.1 | **Viral Trend Spy** | AI quét xu hướng thiết kế & content ngành In (Pinterest, FB) | Web Search + LLM |
+| 6.2 | **AI Design Insight** | Phân tích lý do mẫu thiết kế thành công và gợi ý áp dụng | Gemini Vision |
+| 6.3 | **Daily Trend Alert** | Thông báo xu hướng mới mỗi sáng trên Dashboard | Cron + Dashboard |
+
+---
+
 ## 📋 THỨ TỰ ƯU TIÊN ĐỀ XUẤT
 
 ```
