@@ -42,8 +42,8 @@
 
 | # | Tính năng | Mô tả | Công nghệ |
 |---|-----------|-------|-----------|
-| 3.1 | ~~**Kết nối Facebook Graph API**~~ | ✅ Đã hoàn thành — Nút đăng bài trực tiếp từ AI | Facebook Graph API v19 |
-| 3.2 | ~~**Dashboard chỉ số Facebook**~~ | ✅ Đã hoàn thành UI Dashboard chuyên nghiệp | Chart.js/Recharts + Facebook Insights API |
+| 3.1 | ~~**Kết nối Facebook Graph API**~~ | ✅ Đã cấu hình Page ID & Token chuẩn — Nút đăng bài trực tiếp | Facebook Graph API v19 |
+| 3.2 | ~~**Dashboard chỉ số Facebook**~~ | ✅ Đã cấu hình dữ liệu thật từ Fanpage Nhật Hàn | Chart.js/Recharts + Facebook Insights API |
 | 3.3 | **Kết nối Zalo OA** | Gửi tin nhắn ZNS tự động cho khách hàng | Zalo OA API |
 | 3.4 | **Lập lịch đăng bài** | Hẹn giờ đăng nội dung lên Facebook/Zalo | Cron job (Vercel Cron) |
 | 3.5 | **Quản lý tin nhắn Messenger** | Đọc/trả lời tin nhắn Fanpage ngay trên NH AI | Facebook Webhook |
