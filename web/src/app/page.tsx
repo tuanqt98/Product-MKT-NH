@@ -1,11 +1,14 @@
 import React from 'react';
+import Link from 'next/link';
 import { 
   Sparkles, 
   ArrowUpRight, 
   Clock, 
   TrendingUp, 
   Zap,
-  Target
+  Target,
+  LayoutGrid,
+  ArrowRight
 } from 'lucide-react';
 
 const stats = [
