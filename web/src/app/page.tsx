@@ -51,35 +51,54 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-10">
         {/* Main Action Area */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="glass p-8 rounded-[2rem] border border-white/5 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-              <Sparkles size={120} className="text-primary" />
+        <div className="lg:col-span-2 space-y-8">
+          <div className="relative p-10 rounded-[3rem] overflow-hidden bg-gradient-to-br from-indigo-600 to-purple-700 text-white shadow-2xl shadow-indigo-500/20 group">
+            <div className="absolute top-0 right-0 p-10 opacity-20 group-hover:scale-110 transition-transform duration-700">
+              <Sparkles size={180} />
             </div>
             <div className="relative z-10">
-              <h3 className="text-2xl font-bold mb-4">Khởi tạo kế hoạch Marketing mới</h3>
-              <p className="text-muted-foreground mb-8 max-w-md">
-                Sử dụng 29 kỹ năng AI chuyên sâu để xây dựng chiến lược truyền thông toàn diện cho xưởng in.
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md">
+                  <LayoutGrid size={24} />
+                </div>
+                <span className="text-sm font-black uppercase tracking-[0.3em]">AI Marketing Intelligence</span>
+              </div>
+              <h3 className="text-4xl font-black mb-4 leading-tight">Thư viện 29 Kỹ năng<br />Siêu trí tuệ Marketing</h3>
+              <p className="text-white/70 mb-10 max-w-md text-lg leading-relaxed">
+                Đã sẵn sàng để xây dựng chiến lược, sản xuất nội dung và tối ưu hiệu suất cho Nhật Hàn.
               </p>
               <div className="flex gap-4">
-                <button className="bg-primary text-primary-foreground px-8 py-3 rounded-xl font-bold hover:scale-105 transition-transform">
-                  Bắt đầu ngay
-                </button>
-                <button className="glass px-8 py-3 rounded-xl font-bold hover:bg-accent transition-colors">
-                  Xem thư viện
+                <Link href="/skills" className="bg-white text-indigo-600 px-10 py-4 rounded-2xl font-black hover:scale-105 transition-transform flex items-center gap-2 shadow-xl">
+                  Truy cập Thư viện
+                  <ArrowRight size={20} />
+                </Link>
+                <button className="bg-white/10 backdrop-blur-md border border-white/20 px-8 py-4 rounded-2xl font-bold hover:bg-white/20 transition-colors">
+                  Hướng dẫn sử dụng
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
-            <div className="glass p-6 rounded-3xl border border-white/5 hover:border-blue-500/30 transition-colors">
-              <h4 className="font-bold mb-2">Chiến lược In ấn</h4>
-              <p className="text-xs text-muted-foreground">Tối ưu quy trình bao bì & nhãn mác.</p>
-            </div>
-            <div className="glass p-6 rounded-3xl border border-white/5 hover:border-purple-500/30 transition-colors">
-              <h4 className="font-bold mb-2">Content Facebook</h4>
-              <p className="text-xs text-muted-foreground">Thu hút khách hàng tiềm năng B2B.</p>
+          <div className="space-y-4">
+            <h4 className="text-xl font-black flex items-center gap-2 ml-2">
+              <Zap size={20} className="text-yellow-500" />
+              Kỹ năng gợi ý cho hôm nay
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {[
+                { id: '00-ke-hoach-mkt', name: 'Lập Kế hoạch MKT Tổng thể', desc: 'Xây dựng chiến lược Fullstack từ A-Z.', color: 'bg-blue-500' },
+                { id: '04-script-video', name: 'Kịch bản Video Viral', desc: 'TikTok/Reels thu hút triệu view.', color: 'bg-purple-500' },
+              ].map((skill) => (
+                <Link key={skill.id} href={`/skills/${skill.id}`} className="glass p-6 rounded-[2rem] border border-white/5 hover:border-primary/50 transition-all flex items-center gap-5 group">
+                  <div className={`w-14 h-14 rounded-2xl ${skill.color} flex items-center justify-center text-white shadow-lg group-hover:rotate-6 transition-transform`}>
+                    <Sparkles size={24} />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-sm group-hover:text-primary transition-colors">{skill.name}</h4>
+                    <p className="text-[11px] text-muted-foreground mt-1">{skill.desc}</p>
+                  </div>
+                </Link>
+              ))}
             </div>
           </div>
         </div>
