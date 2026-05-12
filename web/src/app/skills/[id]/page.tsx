@@ -377,8 +377,12 @@ export default function SkillExecutionPage() {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="p-4 flex justify-between items-center bg-background/50 backdrop-blur-xl border-b border-white/5">
           <div className="flex items-center gap-4">
-            <button onClick={() => setShowSessions(true)} className="p-2 hover:bg-white/5 rounded-xl transition-colors text-primary bg-primary/10">
-              <History size={20} />
+            <button 
+              onClick={() => setShowSessions(true)} 
+              className="px-3 py-2 hover:bg-primary/20 rounded-xl transition-colors text-primary bg-primary/10 flex items-center gap-2 border border-primary/20"
+            >
+              <History size={18} />
+              <span className="text-xs font-bold">Lịch sử</span>
             </button>
             <button onClick={() => router.push('/')} className="p-2 hover:bg-white/5 rounded-full transition-colors">
               <ArrowLeft size={20} />
