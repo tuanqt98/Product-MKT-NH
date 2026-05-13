@@ -173,6 +173,7 @@ export default function AIStudioPage() {
                 "Tách nền ngay"
               )}
             </button>
+          </div>
 
           {/* Step 3 */}
           <div className={cn("glass rounded-[2rem] p-6 border border-white/5 space-y-6", !isRemoved && "opacity-50 pointer-events-none")}>
