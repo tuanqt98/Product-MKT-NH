@@ -39,6 +39,8 @@ export default function AIStudioPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragStart = useRef({ x: 0, y: 0 });
 
+  const [isEngineReady, setIsEngineReady] = useState(false);
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -53,23 +55,46 @@ export default function AIStudioPage() {
     }
   };
 
+  // Kiểm tra bộ não AI đã sẵn sàng chưa
+  const checkEngine = () => {
+    // @ts-ignore
+    if (typeof imglyBackgroundRemoval !== 'undefined') {
+      setIsEngineReady(true);
+      return true;
+    }
+    return false;
+  };
+
+  // Tự động kiểm tra bộ não AI khi vào trang
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      if (checkEngine()) clearInterval(timer);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const removeBackground = async () => {
     if (!selectedImage) return;
+    
+    if (!checkEngine()) {
+      alert("Hệ thống đang tải dữ liệu AI (lần đầu tiên), vui lòng đợi 5-10 giây nữa nhé!");
+      return;
+    }
+
     setIsProcessing(true);
     try {
       // @ts-ignore
-      if (typeof imglyBackgroundRemoval !== 'undefined') {
-        // @ts-ignore
-        const blob = await imglyBackgroundRemoval.removeBackground(selectedImage);
-        const url = URL.createObjectURL(blob);
-        setProcessedImage(url);
-        setIsRemoved(true);
-      } else {
-        alert("AI Engine đang tải, vui lòng đợi 5-10 giây!");
-      }
+      const blob = await imglyBackgroundRemoval.removeBackground(selectedImage, {
+        progress: (key: string, current: number, total: number) => {
+          console.log(`Downloading ${key}: ${current}/${total}`);
+        }
+      });
+      const url = URL.createObjectURL(blob);
+      setProcessedImage(url);
+      setIsRemoved(true);
     } catch (error) {
       console.error(error);
-      alert("Lỗi khi xử lý ảnh.");
+      alert("Lỗi khi xử lý ảnh. Có thể do ảnh quá lớn hoặc lỗi kết nối.");
     } finally {
       setIsProcessing(false);
     }
@@ -130,10 +155,24 @@ export default function AIStudioPage() {
           {/* Step 2 */}
           <div className={cn("glass rounded-[2rem] p-6 border border-white/5", !selectedImage && "opacity-50")}>
             <h3 className="font-bold mb-4 flex items-center gap-2"><Sparkles size={18}/> 2. Magic Remove</h3>
-            <button onClick={removeBackground} disabled={isProcessing || isRemoved} className="w-full py-4 rounded-xl bg-primary text-white font-bold disabled:opacity-50 transition-all flex items-center justify-center gap-2">
-              {isProcessing ? <RefreshCw className="animate-spin" size={18}/> : isRemoved ? <Check size={18}/> : "Tách nền ngay"}
+            <button 
+              onClick={removeBackground} 
+              disabled={isProcessing || isRemoved} 
+              className={cn(
+                "w-full py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2",
+                !isEngineReady && !isProcessing ? "bg-white/5 text-white/40 cursor-wait" : "bg-primary text-white"
+              )}
+            >
+              {isProcessing ? (
+                <RefreshCw className="animate-spin" size={18}/>
+              ) : isRemoved ? (
+                <Check size={18}/>
+              ) : !isEngineReady ? (
+                "Đang khởi tạo AI..."
+              ) : (
+                "Tách nền ngay"
+              )}
             </button>
-          </div>
 
           {/* Step 3 */}
           <div className={cn("glass rounded-[2rem] p-6 border border-white/5 space-y-6", !isRemoved && "opacity-50 pointer-events-none")}>
