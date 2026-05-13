@@ -1,0 +1,12 @@
+{
+  "enabled": true,
+  "mode": "suggestion",
+  "pauseDurationMinutes": 30,
+  "activeHours": {
+    "enabled": false,
+    "startHour": 22,
+    "endHour": 7
+  },
+  "greeting": "Xin chào! Cảm ơn bạn đã liên hệ Nhật Hàn. Mình có thể giúp gì cho bạn ạ? 😊",
+  "updatedAt": "2026-05-13T03:02:20.374Z"
+}

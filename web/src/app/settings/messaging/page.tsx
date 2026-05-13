@@ -47,46 +47,69 @@ export default function MessagingSettings() {
 
   // Tải cấu hình
   useEffect(() => {
-    // 1. Thử lấy từ localStorage trước (để persistent trên trình duyệt)
-    const localData = localStorage.getItem('nh_messaging_config');
-    if (localData) {
-      try {
-        setConfig(JSON.parse(localData));
-      } catch (e) {}
-    }
+    const loadConfig = async () => {
+      // 1. Lấy từ localStorage trước
+      let currentConfig = config;
+      const localData = localStorage.getItem('nh_messaging_config');
+      if (localData) {
+        try {
+          currentConfig = JSON.parse(localData);
+          setConfig(currentConfig);
+        } catch (e) {}
+      }
 
-    // 2. Lấy từ server (để đồng bộ)
-    fetch('/api/messaging/settings')
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.updatedAt) {
-          setConfig(data);
-          localStorage.setItem('nh_messaging_config', JSON.stringify(data));
+      // 2. Lấy từ server
+      try {
+        const res = await fetch('/api/messaging/settings');
+        const serverData = await res.json();
+        
+        if (serverData && serverData.updatedAt) {
+          const serverTime = new Date(serverData.updatedAt).getTime();
+          const localTime = currentConfig.updatedAt ? new Date(currentConfig.updatedAt).getTime() : 0;
+
+          // Chỉ ghi đè nếu dữ liệu server mới hơn dữ liệu local
+          if (serverTime > localTime) {
+            setConfig(serverData);
+            localStorage.setItem('nh_messaging_config', JSON.stringify(serverData));
+          }
         }
+      } catch (err) {
+        console.error('Failed to sync with server:', err);
+      } finally {
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
+      }
+    };
+
+    loadConfig();
   }, []);
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // Lưu vào trình duyệt trước
-      localStorage.setItem('nh_messaging_config', JSON.stringify(config));
+      const now = new Date().toISOString();
+      const newConfig = { ...config, updatedAt: now };
+      
+      // Lưu vào trình duyệt ngay lập tức
+      setConfig(newConfig);
+      localStorage.setItem('nh_messaging_config', JSON.stringify(newConfig));
 
+      // Gửi lên server
       const res = await fetch('/api/messaging/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config),
+        body: JSON.stringify(newConfig),
       });
+      
+      if (!res.ok) throw new Error('Server error');
+      
       const data = await res.json();
       if (data.success) {
-        setConfig(data.config);
         setSaved(true);
         setTimeout(() => setSaved(false), 2500);
       }
     } catch (err) {
       console.error('Failed to save:', err);
+      alert('Không thể lưu cấu hình lên server, nhưng đã lưu tạm trên trình duyệt của bạn.');
     } finally {
       setIsSaving(false);
     }
