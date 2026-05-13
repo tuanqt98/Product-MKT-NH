@@ -80,10 +80,26 @@ export default function MessagingInbox() {
 
   useEffect(() => {
     fetchConversations();
-    // Auto-refresh mỗi 10 giây
+    // Auto-refresh danh sách mỗi 10 giây
     const interval = setInterval(fetchConversations, 10000);
-    return () => clearInterval(interval);
-  }, []);
+    
+    // TRÌNH KÍCH HOẠT SIÊU TỐC: Gọi polling trả lời tin nhắn mỗi 10 giây
+    const pollInterval = setInterval(async () => {
+      try {
+        await fetch('/api/facebook/auto-reply');
+        // Sau khi AI trả lời xong, làm mới danh sách để thấy tin nhắn mới
+        fetchConversations();
+        if (selectedId) fetchConversation(selectedId);
+      } catch (err) {
+        console.error('Fast polling error:', err);
+      }
+    }, 10000);
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(pollInterval);
+    };
+  }, [selectedId]);
 
   useEffect(() => {
     if (selectedId) {
@@ -197,9 +213,13 @@ export default function MessagingInbox() {
           </div>
           <div>
             <h1 className="text-2xl font-black tracking-tight">Hộp thư Messenger</h1>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground flex items-center gap-2">
               {conversations.length} cuộc hội thoại
               {totalUnread > 0 && <span className="text-primary font-bold"> · {totalUnread} chưa đọc</span>}
+              <span className="inline-flex items-center gap-1.5 ml-2 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[9px] font-bold border border-emerald-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                AI ENGINE LIVE
+              </span>
             </p>
           </div>
         </div>
