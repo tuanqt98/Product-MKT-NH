@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/facebook/auto-reply",
-      "schedule": "* * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
