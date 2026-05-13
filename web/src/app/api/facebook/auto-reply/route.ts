@@ -18,13 +18,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'No PAGE_ACCESS_TOKEN configured' }, { status: 500 });
   }
 
-  // Kiểm tra AI có được bật không
-  const autoReplyEnabled = process.env.AUTO_REPLY_ENABLED === 'true';
+  // Endpoint này luôn hoạt động khi được gọi (polling)
   const autoReplyMode = process.env.AUTO_REPLY_MODE || 'full';
-
-  if (!autoReplyEnabled) {
-    return NextResponse.json({ status: 'disabled', message: 'Auto-reply is disabled' });
-  }
 
   try {
     // 1. Lấy danh sách cuộc hội thoại gần đây
