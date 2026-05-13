@@ -17,7 +17,8 @@ import {
   LayoutGrid,
   Menu,
   X,
-  Zap
+  Zap,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -29,6 +30,7 @@ const menuItems = [
   { name: 'Video Script', icon: Video, href: '/video' },
   { name: 'Quảng cáo', icon: Megaphone, href: '/ads' },
   { name: 'Radar Xu hướng', icon: Zap, href: '/strategy/trend-spy' },
+  { name: 'AI Studio', icon: Sparkles, href: '/content/ai-studio' },
   { name: 'Cá nhân hóa', icon: Users, href: '/personal-brand' },
   { name: 'Hộp thư', icon: Inbox, href: '/messaging' },
   { name: 'Cài đặt AI Chat', icon: MessageSquare, href: '/settings/messaging' },
