@@ -21,7 +21,7 @@ export async function GET() {
     );
     const postsData = await postsResponse.json();
 
-    // 3. Lấy Insights tổng hợp (28 ngày qua)
+    // 3. Lấy Insights theo NGÀY (period=day) để lấy dữ liệu mới nhất
     const metrics = [
       'page_views_total',
       'page_impressions_unique',
@@ -29,55 +29,79 @@ export async function GET() {
       'page_fan_adds_unique'
     ].join(',');
 
+    // Lấy dữ liệu 7 ngày gần nhất để tính tổng và vẽ chart
     const insightsResponse = await fetch(
-      `https://graph.facebook.com/v20.0/${PAGE_ID}/insights?metric=${metrics}&period=days_28&access_token=${ACCESS_TOKEN}`
+      `https://graph.facebook.com/v20.0/${PAGE_ID}/insights?metric=${metrics}&period=day&access_token=${ACCESS_TOKEN}`
     );
     const insightsData = await insightsResponse.json();
 
-    // Xử lý dữ liệu Insights
-    const stats: any = {};
+    // Xử lý dữ liệu Insights (Tổng hợp 7 ngày gần nhất)
+    const stats: any = {
+      page_views_total: 0,
+      page_impressions_unique: 0,
+      page_post_engagements: 0,
+      page_fan_adds_unique: 0
+    };
+
     if (insightsData.data) {
       insightsData.data.forEach((item: any) => {
-        stats[item.name] = item.values[item.values.length - 1]?.value || 0;
+        // Cộng dồn giá trị của 7 ngày gần nhất
+        const total = item.values.reduce((sum: number, v: any) => sum + (v.value || 0), 0);
+        stats[item.name] = total;
       });
     }
 
     // Xử lý dữ liệu bài viết
-    const recentPosts = (postsData.data || []).map((post: any) => ({
-      id: post.id,
-      message: post.message || 'Bài viết không có nội dung text',
-      created_time: post.created_time,
-      likes: post.insights?.data?.find((i: any) => i.name === 'post_reactions_by_type_total')?.values[0]?.value?.like || 0,
-      comments: 0, // Cần API riêng để lấy comment chính xác nhưng để tạm 0
-      shares: 0
-    }));
+    const recentPosts = (postsData.data || []).map((post: any) => {
+      const insights = post.insights?.data || [];
+      return {
+        id: post.id,
+        message: post.message || 'Bài viết không có nội dung text',
+        created_time: post.created_time,
+        likes: insights.find((i: any) => i.name === 'post_reactions_by_type_total')?.values[0]?.value?.like || 0,
+        comments: 0,
+        shares: 0
+      };
+    });
 
-    // Giả lập dữ liệu chart (Facebook Insights API lấy theo ngày hơi phức tạp, tạm thời lấy từ 28 ngày chia ra)
-    const chartData = [
-      { name: 'T2', reach: Math.floor(stats.page_impressions_unique / 7), engagement: Math.floor(stats.page_post_engagements / 7) },
-      { name: 'T3', reach: Math.floor(stats.page_impressions_unique / 6), engagement: Math.floor(stats.page_post_engagements / 8) },
-      { name: 'T4', reach: Math.floor(stats.page_impressions_unique / 5), engagement: Math.floor(stats.page_post_engagements / 6) },
-      { name: 'T5', reach: Math.floor(stats.page_impressions_unique / 7.5), engagement: Math.floor(stats.page_post_engagements / 7) },
-      { name: 'T6', reach: Math.floor(stats.page_impressions_unique / 6.5), engagement: Math.floor(stats.page_post_engagements / 5) },
-      { name: 'T7', reach: Math.floor(stats.page_impressions_unique / 4), engagement: Math.floor(stats.page_post_engagements / 4) },
-      { name: 'CN', reach: Math.floor(stats.page_impressions_unique / 4.5), engagement: Math.floor(stats.page_post_engagements / 4.2) },
+    // Tạo dữ liệu chart từ 7 ngày thực tế
+    const chartData = (insightsData.data?.find((i: any) => i.name === 'page_impressions_unique')?.values || []).map((v: any, index: number) => {
+      const date = new Date(v.end_time);
+      const dayName = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][date.getDay()];
+      
+      return {
+        name: dayName,
+        reach: v.value || 0,
+        engagement: insightsData.data?.find((i: any) => i.name === 'page_post_engagements')?.values[index]?.value || 0
+      };
+    });
+
+    // Nếu không có dữ liệu thực tế (với Page mới), dùng dữ liệu giả lập có tỉ lệ với tổng
+    const finalChartData = chartData.length > 0 ? chartData : [
+      { name: 'T2', reach: 0, engagement: 0 },
+      { name: 'T3', reach: 0, engagement: 0 },
+      { name: 'T4', reach: 0, engagement: 0 },
+      { name: 'T5', reach: 0, engagement: 0 },
+      { name: 'T6', reach: 0, engagement: 0 },
+      { name: 'T7', reach: 0, engagement: 0 },
+      { name: 'CN', reach: 0, engagement: 0 },
     ];
 
     return NextResponse.json({
       connected: true,
       page: {
-        name: pageData.name,
-        followers: pageData.followers_count,
-        fans: pageData.fan_count
+        name: pageData.name || "In Nhật Hàn",
+        followers: pageData.followers_count || 0,
+        fans: pageData.fan_count || 0
       },
       stats: {
-        reach: stats.page_impressions_unique || 0,
-        engagement: stats.page_post_engagements || 0,
-        views: stats.page_views_total || 0,
-        newFans: stats.page_fan_adds_unique || 0
+        reach: stats.page_impressions_unique,
+        engagement: stats.page_post_engagements,
+        views: stats.page_views_total,
+        newFans: stats.page_fan_adds_unique
       },
       recentPosts,
-      chartData
+      chartData: finalChartData
     });
   } catch (error) {
     console.error('FB Insights Full Error:', error);
