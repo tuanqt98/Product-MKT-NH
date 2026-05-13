@@ -49,13 +49,11 @@ export async function GET(req: NextRequest) {
       // - Tin nhắn rỗng
       if (processedMessages.has(messageId)) continue;
       if (fromId === PAGE_ID) continue;
-      if (!messageText || messageText.trim() === '') continue;
-
-      // Kiểm tra tin nhắn có mới không (trong vòng 2 phút)
+      // Kiểm tra tin nhắn có mới không (trong vòng 60 phút để dễ test)
       const messageTime = new Date(lastMessage.created_time).getTime();
       const now = Date.now();
-      if (now - messageTime > 2 * 60 * 1000) {
-        // Tin nhắn cũ hơn 2 phút, đánh dấu đã xử lý và bỏ qua
+      if (now - messageTime > 60 * 60 * 1000) {
+        // Tin nhắn cũ hơn 60 phút, đánh dấu đã xử lý và bỏ qua
         processedMessages.add(messageId);
         continue;
       }
