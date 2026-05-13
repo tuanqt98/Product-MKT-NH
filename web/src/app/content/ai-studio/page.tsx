@@ -13,7 +13,8 @@ import {
   Check,
   ChevronRight,
   Palette,
-  Layout
+  Layout,
+  RefreshCw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
