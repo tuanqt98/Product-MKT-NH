@@ -6,115 +6,147 @@ import {
   resumeAIForConversation,
   pauseAIForConversation,
   addMessage,
+  getOrCreateConversation,
 } from '@/lib/conversation-state';
 
-/** GET: Lấy danh sách tất cả conversations hoặc 1 conversation cụ thể */
+const PAGE_ACCESS_TOKEN = process.env.FACEBOOK_PAGE_ACCESS_TOKEN || '';
+const PAGE_ID = process.env.FACEBOOK_PAGE_ID || '1085751274627579';
+
+/** 
+ * GET: Lấy danh sách hội thoại từ Facebook và đồng bộ với App
+ */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get('id');
 
-  if (id) {
-    const conv = getConversation(id);
-    if (!conv) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    markAsRead(id);
-    return NextResponse.json(conv);
+  if (!PAGE_ACCESS_TOKEN) {
+    return NextResponse.json({ error: 'No PAGE_ACCESS_TOKEN' }, { status: 500 });
   }
 
-  const conversations = getAllConversations();
-  return NextResponse.json({ conversations });
+  try {
+    if (id) {
+      // 1. Lấy chi tiết 1 cuộc hội thoại từ Facebook
+      const fbConvRes = await fetch(
+        `https://graph.facebook.com/v19.0/${id}/messages?fields=message,from,created_time,id&limit=20&access_token=${PAGE_ACCESS_TOKEN}`
+      );
+      const fbMessages = await fbConvRes.json();
+
+      if (fbMessages.error) throw new Error(fbMessages.error.message);
+
+      // Đồng bộ vào state cục bộ
+      const conv = getOrCreateConversation(id);
+      
+      // Map tin nhắn từ FB sang format của App
+      const formattedMessages = (fbMessages.data || []).reverse().map((m: any) => ({
+        id: m.id,
+        senderId: m.from.id,
+        text: m.message,
+        timestamp: m.created_time,
+        source: m.from.id === PAGE_ID ? 'ai' : 'customer', // Tạm thời coi tin nhắn từ Page là AI
+        status: 'sent'
+      }));
+
+      conv.messages = formattedMessages;
+      markAsRead(id);
+      
+      return NextResponse.json(conv);
+    }
+
+    // 2. Lấy danh sách tất cả hội thoại từ Facebook
+    const fbListRes = await fetch(
+      `https://graph.facebook.com/v19.0/${PAGE_ID}/conversations?fields=participants,updated_time,messages.limit(1){message,from,created_time}&limit=10&access_token=${PAGE_ACCESS_TOKEN}`
+    );
+    const fbList = await fbListRes.json();
+
+    if (fbList.error) throw new Error(fbList.error.message);
+
+    // Đồng bộ từng cuộc hội thoại vào state cục bộ
+    for (const fbConv of fbList.data || []) {
+      const participant = fbConv.participants.data.find((p: any) => p.id !== PAGE_ID);
+      if (!participant) continue;
+
+      const conv = getOrCreateConversation(participant.id, participant.name);
+      conv.lastMessageAt = fbConv.updated_time;
+      
+      const lastMsg = fbConv.messages?.data?.[0];
+      if (lastMsg && conv.messages.length === 0) {
+        conv.messages = [{
+          id: lastMsg.id,
+          senderId: lastMsg.from.id,
+          text: lastMsg.message,
+          timestamp: lastMsg.created_time,
+          source: lastMsg.from.id === PAGE_ID ? 'ai' : 'customer',
+          status: 'sent'
+        }];
+      }
+    }
+
+    const conversations = getAllConversations();
+    return NextResponse.json({ conversations });
+
+  } catch (error: any) {
+    console.error('[API-Conversations] Error:', error.message);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
 
-/** POST: Thao tác trên conversation (gửi tin nhắn, resume AI, pause AI) */
+/** 
+ * POST: Gửi tin nhắn và điều khiển AI
+ */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { action, conversationId, message, pauseMinutes } = body;
 
+    if (!PAGE_ACCESS_TOKEN) return NextResponse.json({ error: 'No Token' }, { status: 500 });
+
     switch (action) {
-      case 'send_message': {
-        // Admin gửi tin nhắn (qua giao diện NH AI → gọi FB API)
-        if (!conversationId || !message) {
-          return NextResponse.json({ error: 'Missing conversationId or message' }, { status: 400 });
-        }
-
-        // Gửi tin nhắn qua Facebook
-        const PAGE_ACCESS_TOKEN = process.env.FACEBOOK_PAGE_ACCESS_TOKEN || '';
-        if (PAGE_ACCESS_TOKEN) {
-          await fetch(
-            `https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                recipient: { id: conversationId },
-                message: { text: message },
-                messaging_type: 'RESPONSE',
-              }),
-            }
-          );
-        }
-
-        // Lưu vào lịch sử
-        const msg = addMessage(conversationId, {
-          senderId: 'admin',
-          text: message,
-          source: 'admin',
-          status: 'sent',
-        });
-
-        // Tạm dừng AI cho conversation này
-        pauseAIForConversation(conversationId, pauseMinutes || 30);
-
-        return NextResponse.json({ success: true, message: msg });
-      }
-
+      case 'send_message':
       case 'approve_suggestion': {
-        // Duyệt gợi ý AI → gửi cho khách
         if (!conversationId || !message) {
           return NextResponse.json({ error: 'Missing data' }, { status: 400 });
         }
 
-        const PAGE_ACCESS_TOKEN = process.env.FACEBOOK_PAGE_ACCESS_TOKEN || '';
-        if (PAGE_ACCESS_TOKEN) {
-          await fetch(
-            `https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                recipient: { id: conversationId },
-                message: { text: message },
-                messaging_type: 'RESPONSE',
-              }),
-            }
-          );
-        }
+        // 1. Gửi sang Facebook
+        const fbRes = await fetch(
+          `https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              recipient: { id: conversationId },
+              message: { text: message },
+              messaging_type: 'RESPONSE',
+            }),
+          }
+        );
+        
+        const fbData = await fbRes.json();
+        if (fbData.error) throw new Error(fbData.error.message);
 
+        // 2. Lưu vào state cục bộ
         addMessage(conversationId, {
-          senderId: 'admin',
+          senderId: PAGE_ID,
           text: message,
           source: 'admin',
           status: 'sent',
         });
 
+        // Tạm dừng AI nếu là Admin gửi (để Admin tự chat tiếp)
+        if (action === 'send_message') {
+          pauseAIForConversation(conversationId, pauseMinutes || 30);
+        }
+
         return NextResponse.json({ success: true });
       }
 
-      case 'resume_ai': {
-        if (!conversationId) {
-          return NextResponse.json({ error: 'Missing conversationId' }, { status: 400 });
-        }
-        resumeAIForConversation(conversationId);
+      case 'resume_ai':
+        if (conversationId) resumeAIForConversation(conversationId);
         return NextResponse.json({ success: true });
-      }
 
-      case 'pause_ai': {
-        if (!conversationId) {
-          return NextResponse.json({ error: 'Missing conversationId' }, { status: 400 });
-        }
-        pauseAIForConversation(conversationId, pauseMinutes || 60);
+      case 'pause_ai':
+        if (conversationId) pauseAIForConversation(conversationId, pauseMinutes || 60);
         return NextResponse.json({ success: true });
-      }
 
       default:
         return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
