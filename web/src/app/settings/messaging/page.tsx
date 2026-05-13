@@ -45,12 +45,24 @@ export default function MessagingSettings() {
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Tải cấu hình từ server
+  // Tải cấu hình
   useEffect(() => {
+    // 1. Thử lấy từ localStorage trước (để persistent trên trình duyệt)
+    const localData = localStorage.getItem('nh_messaging_config');
+    if (localData) {
+      try {
+        setConfig(JSON.parse(localData));
+      } catch (e) {}
+    }
+
+    // 2. Lấy từ server (để đồng bộ)
     fetch('/api/messaging/settings')
       .then(res => res.json())
       .then(data => {
-        setConfig(data);
+        if (data && data.updatedAt) {
+          setConfig(data);
+          localStorage.setItem('nh_messaging_config', JSON.stringify(data));
+        }
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -59,6 +71,9 @@ export default function MessagingSettings() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      // Lưu vào trình duyệt trước
+      localStorage.setItem('nh_messaging_config', JSON.stringify(config));
+
       const res = await fetch('/api/messaging/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -43,16 +43,29 @@ function ensureDataDir() {
 }
 
 export function getConfig(): AutoReplyConfig {
+  // Ưu tiên đọc từ Biến môi trường (cho Vercel Production)
+  const envEnabled = process.env.AUTO_REPLY_ENABLED === 'true';
+  const envMode = process.env.AUTO_REPLY_MODE as 'full' | 'suggestion';
+
   try {
     ensureDataDir();
+    let fileConfig = {};
     if (fs.existsSync(CONFIG_PATH)) {
       const raw = fs.readFileSync(CONFIG_PATH, 'utf8');
-      return { ...DEFAULT_CONFIG, ...JSON.parse(raw) };
+      fileConfig = JSON.parse(raw);
     }
+    
+    return { 
+      ...DEFAULT_CONFIG, 
+      ...fileConfig,
+      // Overwrite bằng env nếu có
+      enabled: process.env.AUTO_REPLY_ENABLED ? envEnabled : (fileConfig as any).enabled ?? DEFAULT_CONFIG.enabled,
+      mode: envMode || (fileConfig as any).mode || DEFAULT_CONFIG.mode
+    };
   } catch (err) {
     console.error('[AutoReplyConfig] Error reading config:', err);
   }
-  return { ...DEFAULT_CONFIG };
+  return { ...DEFAULT_CONFIG, enabled: envEnabled || DEFAULT_CONFIG.enabled };
 }
 
 export function saveConfig(config: Partial<AutoReplyConfig>): AutoReplyConfig {
