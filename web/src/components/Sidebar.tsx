@@ -10,6 +10,8 @@ import {
   Megaphone, 
   Users, 
   Settings, 
+  MessageSquare,
+  Inbox,
   BarChart3,
   ChevronRight,
   LayoutGrid,
@@ -28,6 +30,8 @@ const menuItems = [
   { name: 'Quảng cáo', icon: Megaphone, href: '/ads' },
   { name: 'Radar Xu hướng', icon: Zap, href: '/strategy/trend-spy' },
   { name: 'Cá nhân hóa', icon: Users, href: '/personal-brand' },
+  { name: 'Hộp thư', icon: Inbox, href: '/messaging' },
+  { name: 'Cài đặt AI Chat', icon: MessageSquare, href: '/settings/messaging' },
 ];
 
 export default function Sidebar() {
