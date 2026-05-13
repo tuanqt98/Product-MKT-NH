@@ -38,13 +38,17 @@ export interface ConversationStore {
 const STORE_PATH = path.join(process.cwd(), 'data', 'conversations.json');
 
 function ensureDataDir() {
+  if (process.env.VERCEL) return;
   const dir = path.dirname(STORE_PATH);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
 }
 
+let inMemoryStore: ConversationStore = { conversations: {}, updatedAt: new Date().toISOString() };
+
 function readStore(): ConversationStore {
+  if (process.env.VERCEL) return inMemoryStore;
   try {
     ensureDataDir();
     if (fs.existsSync(STORE_PATH)) {
@@ -54,13 +58,19 @@ function readStore(): ConversationStore {
   } catch (err) {
     console.error('[ConversationState] Error reading store:', err);
   }
-  return { conversations: {}, updatedAt: new Date().toISOString() };
+  return inMemoryStore;
 }
 
 function writeStore(store: ConversationStore) {
-  ensureDataDir();
   store.updatedAt = new Date().toISOString();
-  fs.writeFileSync(STORE_PATH, JSON.stringify(store, null, 2), 'utf8');
+  inMemoryStore = store;
+  if (process.env.VERCEL) return;
+  try {
+    ensureDataDir();
+    fs.writeFileSync(STORE_PATH, JSON.stringify(store, null, 2), 'utf8');
+  } catch (err) {
+    // Ignore write errors on read-only systems
+  }
 }
 
 /** Lấy hoặc tạo mới conversation */
