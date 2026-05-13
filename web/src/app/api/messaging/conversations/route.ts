@@ -25,24 +25,28 @@ export async function GET(req: NextRequest) {
 
   try {
     if (id) {
-      // 1. Lấy chi tiết 1 cuộc hội thoại từ Facebook
+      // 1. Lấy chi tiết 1 cuộc hội thoại từ Facebook (id ở đây là Conversation ID: t_...)
       const fbConvRes = await fetch(
-        `https://graph.facebook.com/v19.0/${id}/messages?fields=message,from,created_time,id&limit=20&access_token=${PAGE_ACCESS_TOKEN}`
+        `https://graph.facebook.com/v19.0/${id}?fields=messages.limit(20){message,from,created_time,id},participants&access_token=${PAGE_ACCESS_TOKEN}`
       );
-      const fbMessages = await fbConvRes.json();
+      const fbConvData = await fbConvRes.json();
 
-      if (fbMessages.error) throw new Error(fbMessages.error.message);
+      if (fbConvData.error) throw new Error(fbConvData.error.message);
+
+      // Tìm participant không phải là Page để lấy tên khách hàng
+      const participant = fbConvData.participants?.data?.find((p: any) => p.id !== PAGE_ID);
+      const customerName = participant?.name || `Khách #${id.slice(-4)}`;
 
       // Đồng bộ vào state cục bộ
-      const conv = getOrCreateConversation(id);
+      const conv = getOrCreateConversation(id, customerName);
       
       // Map tin nhắn từ FB sang format của App
-      const formattedMessages = (fbMessages.data || []).reverse().map((m: any) => ({
+      const formattedMessages = (fbConvData.messages?.data || []).reverse().map((m: any) => ({
         id: m.id,
         senderId: m.from.id,
         text: m.message,
         timestamp: m.created_time,
-        source: m.from.id === PAGE_ID ? 'ai' : 'customer', // Tạm thời coi tin nhắn từ Page là AI
+        source: m.from.id === PAGE_ID ? 'ai' : 'customer',
         status: 'sent'
       }));
 
@@ -65,8 +69,12 @@ export async function GET(req: NextRequest) {
       const participant = fbConv.participants.data.find((p: any) => p.id !== PAGE_ID);
       if (!participant) continue;
 
-      const conv = getOrCreateConversation(participant.id, participant.name);
+      // SỬ DỤNG CONVERSATION ID (fbConv.id) LÀM KHÓA CHÍNH
+      const conv = getOrCreateConversation(fbConv.id, participant.name);
       conv.lastMessageAt = fbConv.updated_time;
+      
+      // Lưu thêm PSID của khách để gửi tin nhắn sau này
+      (conv as any).customerPSID = participant.id;
       
       const lastMsg = fbConv.messages?.data?.[0];
       if (lastMsg && conv.messages.length === 0) {
@@ -107,6 +115,10 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: 'Missing data' }, { status: 400 });
         }
 
+        // Lấy PSID thực tế từ state (vì conversationId giờ là thread ID t_...)
+        const conv = getConversation(conversationId);
+        const recipientId = (conv as any)?.customerPSID || conversationId;
+
         // 1. Gửi sang Facebook
         const fbRes = await fetch(
           `https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`,
@@ -114,7 +126,7 @@ export async function POST(req: NextRequest) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              recipient: { id: conversationId },
+              recipient: { id: recipientId },
               message: { text: message },
               messaging_type: 'RESPONSE',
             }),
