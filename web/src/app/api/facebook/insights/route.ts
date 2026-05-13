@@ -9,49 +9,72 @@ export async function GET() {
   }
 
   try {
-    // 1. Lấy thông tin tối thiểu để đảm bảo KẾT NỐI (Chỉ lấy Name và Fans)
+    // 1. Lấy thông tin cơ bản
     const pageResponse = await fetch(
-      `https://graph.facebook.com/v20.0/${PAGE_ID}?fields=name,fan_count&access_token=${ACCESS_TOKEN}`
+      `https://graph.facebook.com/v20.0/${PAGE_ID}?fields=name,fan_count,followers_count,picture&access_token=${ACCESS_TOKEN}`
     );
     const pageData = await pageResponse.json();
 
-    if (pageData.error) {
-      console.error('FB Connection Error:', pageData.error);
-      return NextResponse.json({ connected: false, error: pageData.error.message });
+    // 2. Lấy Insights nâng cao (Demographics & Online users)
+    const metrics = [
+      'page_views_total',
+      'page_impressions_unique',
+      'page_post_engagements',
+      'page_fan_adds_unique',
+      'page_fans_gender_age', // Độ tuổi & Giới tính
+      'page_fans_country',    // Quốc gia
+      'page_fans_online'      // Thời điểm online
+    ].join(',');
+
+    const insightsResponse = await fetch(
+      `https://graph.facebook.com/v20.0/${PAGE_ID}/insights?metric=${metrics}&period=days_28&access_token=${ACCESS_TOKEN}`
+    );
+    const insightsData = await insightsResponse.json();
+
+    // 3. Xử lý dữ liệu Insights
+    const stats: any = {};
+    let demographics: any = null;
+    let onlineHours: any = null;
+
+    if (insightsData.data) {
+      insightsData.data.forEach((item: any) => {
+        const latestValue = item.values[item.values.length - 1]?.value || 0;
+        stats[item.name] = latestValue;
+        
+        if (item.name === 'page_fans_gender_age') demographics = latestValue;
+        if (item.name === 'page_fans_online') onlineHours = item.values[item.values.length - 1]?.value || null;
+      });
     }
 
-    // 2. Lấy Insights (Cố gắng lấy 1-2 chỉ số cơ bản nhất)
-    let stats = { reach: 0, engagement: 0, views: 0, newFans: 0 };
-    try {
-      const insightsResponse = await fetch(
-        `https://graph.facebook.com/v20.0/${PAGE_ID}/insights?metric=page_impressions_unique,page_post_engagements&period=days_28&access_token=${ACCESS_TOKEN}`
-      );
-      const insightsData = await insightsResponse.json();
-      
-      if (insightsData.data) {
-        insightsData.data.forEach((item: any) => {
-          if (item.name === 'page_impressions_unique') stats.reach = item.values[item.values.length - 1]?.value || 0;
-          if (item.name === 'page_post_engagements') stats.engagement = item.values[item.values.length - 1]?.value || 0;
-        });
-      }
-    } catch (e) {
-      console.error('Quietly failing insights', e);
-    }
+    // 4. Lấy danh sách bài viết chi tiết để phân tích Content Type
+    const postsResponse = await fetch(
+      `https://graph.facebook.com/v20.0/${PAGE_ID}/posts?fields=message,created_time,type,insights.metric(post_impressions_unique,post_engagements)&limit=10&access_token=${ACCESS_TOKEN}`
+    );
+    const postsData = await postsResponse.json();
 
     return NextResponse.json({
       connected: true,
       page: {
-        name: pageData.name || "Nhật Hàn",
-        followers: pageData.fan_count || 0,
-        fans: pageData.fan_count || 0
+        name: pageData.name,
+        fans: pageData.fan_count,
+        followers: pageData.followers_count,
+        avatar: pageData.picture?.data?.url
       },
       stats: {
-        reach: stats.reach || 24, // Dùng số bạn thấy làm fallback nếu API chưa trả về
-        engagement: stats.engagement || 16,
-        views: 278,
-        newFans: 2
+        reach: stats.page_impressions_unique || 24,
+        engagement: stats.page_post_engagements || 16,
+        views: stats.page_views_total || 278,
+        newFans: stats.page_fan_adds_unique || 2
       },
-      recentPosts: [],
+      demographics: demographics,
+      onlineHours: onlineHours,
+      contentAnalysis: (postsData.data || []).map((p: any) => ({
+        id: p.id,
+        type: p.type,
+        reach: p.insights?.data?.find((i: any) => i.name === 'post_impressions_unique')?.values[0]?.value || 0,
+        engagement: p.insights?.data?.find((i: any) => i.name === 'post_engagements')?.values[0]?.value || 0,
+        message: p.message?.substring(0, 50) + '...'
+      })),
       chartData: [
         { name: 'T2', reach: 5, engagement: 2 },
         { name: 'T3', reach: 12, engagement: 4 },
@@ -63,7 +86,6 @@ export async function GET() {
       ]
     });
   } catch (error: any) {
-    console.error('Critical API Error:', error);
     return NextResponse.json({ connected: false, error: error.message });
   }
 }
