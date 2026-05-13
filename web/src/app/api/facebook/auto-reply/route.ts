@@ -22,72 +22,62 @@ export async function GET(req: NextRequest) {
   const autoReplyMode = process.env.AUTO_REPLY_MODE || 'full';
 
   try {
-    // 1. Lấy danh sách cuộc hội thoại gần đây
+    // 1. Lấy danh sách cuộc hội thoại gần đây (tăng limit tin nhắn lên 5)
     const convRes = await fetch(
-      `https://graph.facebook.com/v19.0/${PAGE_ID}/conversations?fields=participants,updated_time,messages.limit(1){message,from,created_time,id}&limit=5&access_token=${PAGE_ACCESS_TOKEN}`
+      `https://graph.facebook.com/v19.0/${PAGE_ID}/conversations?fields=participants,updated_time,messages.limit(5){message,from,created_time,id}&limit=10&access_token=${PAGE_ACCESS_TOKEN}`
     );
     const convData = await convRes.json();
 
     if (convData.error) {
-      console.error('[AutoReply-Poll] Error fetching conversations:', convData.error);
+      console.error('[AutoReply-Poll] FB API Error:', convData.error);
       return NextResponse.json({ error: convData.error }, { status: 500 });
     }
 
     const results: any[] = [];
+    const now = Date.now();
 
     for (const conv of convData.data || []) {
-      const lastMessage = conv.messages?.data?.[0];
-      if (!lastMessage) continue;
+      const messages = conv.messages?.data || [];
+      if (messages.length === 0) continue;
 
-      const messageId = lastMessage.id;
-      const fromId = lastMessage.from?.id;
-      const messageText = lastMessage.message;
+      // Tìm tin nhắn mới nhất từ KHÁCH HÀNG (không phải từ Page)
+      const lastCustomerMsg = messages.find((m: any) => m.from?.id !== PAGE_ID);
+      
+      // Kiểm tra xem Page đã trả lời tin nhắn này chưa (xem có tin nhắn nào của Page sau tin nhắn này không)
+      const lastPageMsgIndex = messages.findIndex((m: any) => m.from?.id === PAGE_ID);
+      const lastCustMsgIndex = messages.findIndex((m: any) => m.from?.id !== PAGE_ID);
 
-      // Bỏ qua nếu:
-      // - Đã xử lý rồi
-      // - Tin nhắn từ chính Page (admin hoặc AI đã trả lời)
-      // - Tin nhắn rỗng
-      if (processedMessages.has(messageId)) continue;
-      if (fromId === PAGE_ID) continue;
-      // Kiểm tra tin nhắn có mới không (trong vòng 60 phút để dễ test)
-      const messageTime = new Date(lastMessage.created_time).getTime();
-      const now = Date.now();
-      if (now - messageTime > 60 * 60 * 1000) {
-        // Tin nhắn cũ hơn 60 phút, đánh dấu đã xử lý và bỏ qua
-        processedMessages.add(messageId);
+      // Nếu tin nhắn mới nhất là của Page -> Đã trả lời rồi, bỏ qua
+      if (lastCustMsgIndex > lastPageMsgIndex && lastPageMsgIndex !== -1) {
+        // Có tin nhắn của Page sau tin nhắn khách -> Đã trả lời
         continue;
       }
+      
+      if (!lastCustomerMsg) continue;
 
-      console.log(`[AutoReply-Poll] New message from ${fromId}: "${messageText}"`);
+      const messageId = lastCustomerMsg.id;
+      const messageText = lastCustomerMsg.message;
+      const messageTime = new Date(lastCustomerMsg.created_time).getTime();
 
-      // Tìm PSID (Page-Scoped ID) của người gửi
-      const participant = conv.participants?.data?.find((p: any) => p.id !== PAGE_ID);
-      const recipientPSID = participant?.id || fromId;
+      // Bỏ qua nếu tin nhắn quá cũ (> 30 phút)
+      if (now - messageTime > 30 * 60 * 1000) continue;
 
-      if (autoReplyMode === 'full') {
-        // Tạo câu trả lời AI
+      // Bỏ qua nếu đã xử lý (để chắc chắn)
+      if (processedMessages.has(messageId)) continue;
+
+      console.log(`[AutoReply-Poll] Processing message from ${lastCustomerMsg.from?.name}: "${messageText}"`);
+
+      const recipientPSID = lastCustomerMsg.from?.id;
+
+      if (autoReplyMode === 'full' && messageText) {
         const aiResponse = await generateAIResponse(messageText);
-
         if (aiResponse) {
-          // Gửi tin nhắn qua Send API
           const sendResult = await sendMessage(recipientPSID, aiResponse);
-          results.push({
-            to: recipientPSID,
-            question: messageText,
-            answer: aiResponse,
-            sent: sendResult.success,
-          });
-          console.log(`[AutoReply-Poll] Sent reply to ${recipientPSID}: "${aiResponse.substring(0, 50)}..."`);
+          if (sendResult.success) {
+            processedMessages.add(messageId);
+            results.push({ to: recipientPSID, text: messageText, reply: aiResponse });
+          }
         }
-      }
-
-      // Đánh dấu đã xử lý
-      processedMessages.add(messageId);
-
-      // Giữ bộ nhớ sạch (chỉ lưu 500 tin nhắn gần nhất)
-      if (processedMessages.size > 500) {
-        const arr = Array.from(processedMessages);
-        for (let i = 0; i < 200; i++) processedMessages.delete(arr[i]);
       }
     }
 
