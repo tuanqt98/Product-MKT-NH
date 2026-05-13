@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       status: 'ok',
-      autoReply: autoReplyEnabled,
+      autoReply: true,
       mode: autoReplyMode,
       processed: results.length,
       results,
