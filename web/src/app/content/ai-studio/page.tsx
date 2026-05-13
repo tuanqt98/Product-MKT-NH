@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
+import Script from 'next/script';
 import { 
   Upload, 
   Image as ImageIcon, 
@@ -8,8 +9,6 @@ import {
   Download, 
   Trash2, 
   Layers, 
-  Maximize, 
-  Type, 
   Check,
   ChevronRight,
   Palette,
@@ -34,7 +33,6 @@ export default function AIStudioPage() {
   const [selectedBg, setSelectedBg] = useState(BACKGROUND_TEMPLATES[0]);
   const [processedImage, setProcessedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -49,26 +47,45 @@ export default function AIStudioPage() {
     }
   };
 
-  const simulateRemoveBackground = () => {
+  const removeBackground = async () => {
+    if (!selectedImage) return;
     setIsProcessing(true);
-    // Giả lập xử lý AI trong 3 giây
-    setTimeout(() => {
+    
+    try {
+      // @ts-ignore
+      if (typeof imglyBackgroundRemoval !== 'undefined') {
+        // @ts-ignore
+        const blob = await imglyBackgroundRemoval.removeBackground(selectedImage);
+        const url = URL.createObjectURL(blob);
+        setProcessedImage(url);
+        setIsRemoved(true);
+      } else {
+        alert("AI Engine đang được khởi tạo, vui lòng đợi vài giây và thử lại!");
+      }
+    } catch (error) {
+      console.error("AI Error:", error);
+      alert("Có lỗi khi xử lý ảnh. Vui lòng thử lại với ảnh khác.");
+    } finally {
       setIsProcessing(false);
-      setIsRemoved(true);
-      setProcessedImage(selectedImage); // Trong thực tế sẽ là kết quả từ AI API
-    }, 3000);
+    }
   };
 
   const downloadBanner = () => {
-    if (!selectedImage) return;
+    const url = processedImage || selectedImage;
+    if (!url) return;
     const link = document.createElement('a');
     link.download = 'nh-marketing-banner.png';
-    link.href = processedImage || selectedImage;
+    link.href = url;
     link.click();
   };
 
   return (
     <div className="min-h-[calc(100vh-6rem)] pb-12 animate-in fade-in duration-700">
+      <Script 
+        src="https://static.imgly.com/packages/@imgly/background-removal/1.4.5/dist/index.js"
+        strategy="lazyOnload"
+      />
+
       {/* Header Section */}
       <header className="mb-10">
         <div className="flex items-center gap-3 mb-2">
@@ -80,7 +97,7 @@ export default function AIStudioPage() {
           </h1>
         </div>
         <p className="text-muted-foreground text-lg max-w-2xl">
-          Tự động tách nền sản phẩm và thiết kế banner chuyên nghiệp trong vài giây với công nghệ AI Vision.
+          Tự động tách nền sản phẩm và thiết kế banner chuyên nghiệp trong vài giây với công nghệ AI Vision (Free 100%).
         </p>
       </header>
 
@@ -140,7 +157,7 @@ export default function AIStudioPage() {
             </div>
 
             <button 
-              onClick={simulateRemoveBackground}
+              onClick={removeBackground}
               disabled={isProcessing || isRemoved}
               className={cn(
                 "w-full py-4 rounded-2xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-3 transition-all",
@@ -216,7 +233,7 @@ export default function AIStudioPage() {
               </div>
               <div className="flex items-center gap-2">
                 <button 
-                  onClick={() => { setSelectedImage(null); setIsRemoved(false); }}
+                  onClick={() => { setSelectedImage(null); setIsRemoved(false); setProcessedImage(null); }}
                   className="p-2 hover:bg-white/10 rounded-lg text-white/40 hover:text-red-400 transition-all"
                 >
                   <Trash2 size={16} />
@@ -240,7 +257,7 @@ export default function AIStudioPage() {
                   
                   {/* The actual image */}
                   <img 
-                    src={selectedImage} 
+                    src={isRemoved ? processedImage! : selectedImage} 
                     alt="Main product" 
                     className={cn(
                       "max-w-[80%] max-h-[80%] object-contain drop-shadow-2xl transition-all duration-700",
