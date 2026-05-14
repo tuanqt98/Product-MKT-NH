@@ -408,6 +408,106 @@
   box-shadow: 0 2px 12px rgba(180, 80, 100, 0.06) !important;
 }
 
+/* ======================================
+   MESSAGING PAGE — Pink theme overrides
+   ====================================== */
+
+/* Conversation sidebar & Search */
+.theme-pink div[class*="w-full lg:w-96 glass"] {
+  background: white !important;
+  border-color: rgba(200, 100, 120, 0.20) !important;
+}
+.theme-pink input[placeholder*="Tìm cuộc hội thoại"] {
+  background: rgba(245, 230, 235, 0.4) !important;
+  border-color: rgba(200, 100, 120, 0.20) !important;
+  color: oklch(0.22 0.030 320) !important;
+}
+.theme-pink input[placeholder*="Tìm cuộc hội thoại"]::placeholder {
+  color: oklch(0.55 0.05 330) !important;
+}
+
+/* Conversation list items */
+.theme-pink button[class*="w-full p-4 flex items-start"] {
+  border-bottom-color: rgba(200, 100, 120, 0.10) !important;
+}
+.theme-pink button[class*="bg-primary/10 border-l-2 border-l-primary"] {
+  background: rgba(200, 100, 120, 0.10) !important;
+}
+.theme-pink button[class*="w-full p-4"] h4 {
+  color: oklch(0.22 0.030 320) !important;
+}
+.theme-pink button[class*="w-full p-4"] p {
+  color: oklch(0.46 0.05 330) !important;
+}
+
+/* Message bubbles in Messenger */
+.theme-pink div[class*="max-w-[75%] rounded-2xl"] {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03) !important;
+}
+
+/* Customer message (Left) */
+.theme-pink div[class*="bg-white/10 text-white"] {
+  background: white !important;
+  border: 1px solid rgba(200, 100, 120, 0.20) !important;
+  color: oklch(0.22 0.030 320) !important;
+}
+.theme-pink div[class*="bg-white/10 text-white"] * {
+  color: oklch(0.22 0.030 320) !important;
+}
+
+/* AI message (Right) */
+.theme-pink div[class*="bg-emerald-600/20 text-emerald-100"] {
+  background: rgba(235, 248, 240, 0.9) !important;
+  border-color: rgba(80, 180, 120, 0.3) !important;
+  color: oklch(0.22 0.06 160) !important;
+}
+.theme-pink div[class*="bg-emerald-600/20 text-emerald-100"] * {
+  color: oklch(0.22 0.06 160) !important;
+}
+
+/* AI Suggestion (Right) */
+.theme-pink div[class*="bg-amber-600/10 text-amber-100"] {
+  background: rgba(255, 251, 235, 0.9) !important;
+  border-color: rgba(217, 119, 6, 0.3) !important;
+  color: oklch(0.35 0.08 60) !important;
+}
+.theme-pink div[class*="bg-amber-600/10 text-amber-100"] * {
+  color: oklch(0.35 0.08 60) !important;
+}
+
+/* Admin/You message (Right) */
+.theme-pink div[class*="bg-primary/20 text-primary-foreground"] {
+  background: rgba(245, 230, 238, 0.8) !important;
+  border-color: rgba(200, 100, 120, 0.2) !important;
+  color: oklch(0.35 0.08 10) !important;
+}
+.theme-pink div[class*="bg-primary/20 text-primary-foreground"] * {
+  color: oklch(0.35 0.08 10) !important;
+}
+
+/* Messenger reply textarea */
+.theme-pink textarea[placeholder*="Nhập tin nhắn trả lời"] {
+  background: white !important;
+  border: 1px solid rgba(200, 100, 120, 0.3) !important;
+  color: oklch(0.22 0.030 320) !important;
+}
+
+/* Empty states */
+.theme-pink h3[class*="text-white/40"],
+.theme-pink p[class*="text-white/40"],
+.theme-pink p[class*="text-white/20"] {
+  color: oklch(0.55 0.05 330) !important;
+}
+
+/* AI Suggestion Banner below chat */
+.theme-pink div[class*="bg-amber-500/10"][class*="border-amber-500/20"] {
+  background: rgba(255, 251, 235, 0.95) !important;
+  border-color: rgba(217, 119, 6, 0.3) !important;
+}
+.theme-pink div[class*="bg-amber-500/10"] p {
+  color: oklch(0.35 0.08 60) !important;
+}
+
 /* --- Generic white-on-white text fixes --- */
 /* Any p tag with white opacity text in pink mode */
 .theme-pink p[class*="white\/40"],
