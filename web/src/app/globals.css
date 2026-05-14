@@ -233,6 +233,14 @@
   background: rgba(255, 255, 255, 1) !important;
   color: oklch(0.58 0.20 10) !important;
 }
+/* Active category button in filter bar */
+.theme-pink .sticky button[class*="bg-primary"],
+.theme-pink .sticky button[class*="scale-105"] {
+  background: linear-gradient(135deg, oklch(0.58 0.20 10) 0%, oklch(0.62 0.18 350) 100%) !important;
+  color: white !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 16px rgba(200, 50, 80, 0.30) !important;
+}
 
 /* --- Footer glass block --- */
 .theme-pink footer p[class*="text-white"] {
