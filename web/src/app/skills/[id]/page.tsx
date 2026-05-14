@@ -262,11 +262,11 @@ export default function SkillExecutionPage() {
 
         <main className="flex-1 flex overflow-hidden relative">
           <div className={cn("flex-1 flex flex-col overflow-y-auto p-6 space-y-6 custom-scrollbar", isCompareMode ? "border-r border-white/10" : "")} ref={scrollRef}>
-            <ChatMessageList messages={messages} skill={skill} setInput={setInput} />
+            <ChatMessageList messages={messages} skill={skill} setInput={setInput} isLoading={isLoading} />
           </div>
           {isCompareMode && (
             <div className="flex-1 flex flex-col bg-white/[0.02] overflow-y-auto p-6 space-y-6 custom-scrollbar" ref={scrollRefB}>
-              <ChatMessageList messages={messagesB} skill={skill} setInput={setInput} />
+              <ChatMessageList messages={messagesB} skill={skill} setInput={setInput} isLoading={isLoading} />
             </div>
           )}
         </main>
@@ -282,8 +282,8 @@ export default function SkillExecutionPage() {
   );
 }
 
-function ChatMessageList({ messages, skill, setInput }: any) {
-  if (messages.length === 0) return (
+function ChatMessageList({ messages, skill, setInput, isLoading }: any) {
+  if (messages.length === 0 && !isLoading) return (
     <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
       <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary animate-pulse"><Sparkles size={32} /></div>
       <div className="max-w-xs"><h3 className="font-bold">Sẵn sàng thực thi</h3><p className="text-xs text-muted-foreground">Sử dụng các gợi ý bên dưới hoặc nhập yêu cầu tự do.</p></div>
@@ -297,14 +297,69 @@ function ChatMessageList({ messages, skill, setInput }: any) {
     </div>
   );
 
-  return messages.map((m: any) => (
-    <div key={m.id} className={cn("flex gap-4", m.role === 'user' ? "flex-row-reverse" : "")}>
-      <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", m.role === 'user' ? "bg-indigo-600" : "bg-primary")}>
-        {m.role === 'user' ? <User size={16} /> : <Bot size={16} />}
+  return (
+    <>
+      {messages.map((m: any) => (
+        <div key={m.id} className={cn("flex gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300", m.role === 'user' ? "flex-row-reverse" : "")}>
+          <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0", m.role === 'user' ? "bg-indigo-600" : "bg-primary shadow-lg shadow-primary/20")}>
+            {m.role === 'user' ? <User size={16} /> : <Bot size={16} />}
+          </div>
+          <div className={cn("p-4 rounded-3xl text-sm max-w-[85%] shadow-sm", m.role === 'user' ? "bg-indigo-600 text-white" : "bg-white/5 border border-white/10")}>
+            {m.role === 'assistant' ? <MarkdownRenderer content={m.content} /> : <div className="whitespace-pre-wrap">{m.content}</div>}
+          </div>
+        </div>
+      ))}
+      
+      {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
+        <AIThinkingIndicator />
+      )}
+    </>
+  );
+}
+
+function AIThinkingIndicator() {
+  const [dots, setDots] = useState("");
+  const [status, setStatus] = useState("Đang khởi tạo AI...");
+
+  useEffect(() => {
+    const dotInterval = setInterval(() => {
+      setDots(prev => prev.length >= 3 ? "" : prev + ".");
+    }, 400);
+
+    const statuses = [
+      "Đang phân tích SKILL.md...",
+      "Đang đọc dữ liệu In Nhật Hàn...",
+      "Đang lên kịch bản tối ưu...",
+      "Đang chuẩn bị nội dung...",
+      "AI đang suy nghĩ..."
+    ];
+    let i = 0;
+    const statusInterval = setInterval(() => {
+      i = (i + 1) % statuses.length;
+      setStatus(statuses[i]);
+    }, 1500);
+
+    return () => {
+      clearInterval(dotInterval);
+      clearInterval(statusInterval);
+    };
+  }, []);
+
+  return (
+    <div className="flex gap-4 animate-in fade-in duration-500">
+      <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center flex-shrink-0 animate-pulse shadow-lg shadow-primary/30">
+        <Bot size={16} />
       </div>
-      <div className={cn("p-4 rounded-3xl text-sm max-w-[85%]", m.role === 'user' ? "bg-indigo-600/20" : "bg-white/5 border border-white/10")}>
-        {m.role === 'assistant' ? <MarkdownRenderer content={m.content} /> : <div className="whitespace-pre-wrap">{m.content}</div>}
+      <div className="p-5 rounded-3xl bg-white/5 border border-white/10 flex flex-col gap-3 min-w-[200px]">
+        <div className="flex gap-1.5">
+          <div className="w-2 h-2 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]"></div>
+          <div className="w-2 h-2 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]"></div>
+          <div className="w-2 h-2 rounded-full bg-primary animate-bounce"></div>
+        </div>
+        <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] animate-pulse">
+          {status}
+        </p>
       </div>
     </div>
-  ));
+  );
 }
