@@ -18,9 +18,12 @@ import {
   Menu,
   X,
   Zap,
-  Sparkles
+  Sparkles,
+  Moon,
+  Flower2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTheme } from '@/components/ThemeProvider';
 
 const menuItems = [
   { name: 'Dashboard', icon: LayoutDashboard, href: '/' },
@@ -39,13 +42,15 @@ const menuItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
+  const isPink = theme === 'pink';
 
   return (
     <>
       {/* Mobile Toggle Button */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-3 bg-primary text-white rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+        className="lg:hidden fixed top-4 left-4 z-50 p-3 bg-primary text-primary-foreground rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
       >
         {isOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
@@ -53,7 +58,7 @@ export default function Sidebar() {
       {/* Overlay for Mobile */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden transition-all duration-300"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -63,16 +68,25 @@ export default function Sidebar() {
         "fixed lg:sticky inset-y-0 left-0 z-40 w-72 h-screen glass border-r flex flex-col transform transition-all duration-300 ease-out",
         isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
+        {/* Logo */}
         <div className="p-8">
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+            <div className={cn(
+              "w-8 h-8 rounded-lg flex items-center justify-center",
+              isPink
+                ? "bg-gradient-to-br from-rose-400 to-pink-600"
+                : "bg-gradient-to-br from-indigo-500 to-purple-600"
+            )}>
               <span className="text-white font-bold text-lg">N</span>
             </div>
-            <h1 className="text-2xl font-black tracking-tight text-foreground">NH <span className="text-primary">AI</span></h1>
+            <h1 className="text-2xl font-black tracking-tight text-foreground">
+              NH <span className="text-primary">AI</span>
+            </h1>
           </div>
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest opacity-60">Marketing OS</p>
         </div>
 
+        {/* Navigation */}
         <nav className="flex-1 px-4 space-y-1.5 mt-2 overflow-y-auto custom-scrollbar">
           {menuItems.map((item) => {
             const isActive = pathname === item.href;
@@ -85,19 +99,17 @@ export default function Sidebar() {
                   "flex items-center justify-between px-5 py-3.5 rounded-2xl transition-all duration-300 group relative overflow-hidden",
                   isActive 
                     ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 scale-[1.02]" 
-                    : "hover:bg-primary/10 text-muted-foreground hover:text-primary"
+                    : "hover:bg-accent text-muted-foreground hover:text-accent-foreground"
                 )}
               >
                 <div className="flex items-center gap-4 relative z-10">
                   <item.icon size={20} className={cn(
                     "transition-transform duration-300 group-hover:scale-110",
-                    isActive ? "text-white" : "text-muted-foreground group-hover:text-primary"
+                    isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
                   )} />
                   <span className="font-semibold text-[0.95rem] tracking-tight">{item.name}</span>
                 </div>
                 {isActive && <ChevronRight size={16} className="relative z-10 opacity-70" />}
-                
-                {/* Hover Glow Effect */}
                 {!isActive && (
                   <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 )}
@@ -106,15 +118,78 @@ export default function Sidebar() {
           })}
         </nav>
 
-        <div className="p-6 mt-auto">
-          <div className="bg-gradient-to-br from-secondary/80 to-secondary/40 backdrop-blur-md rounded-[2rem] p-5 border border-white/5 relative overflow-hidden group">
+        {/* Bottom Section */}
+        <div className="p-6 mt-auto space-y-3">
+          
+          {/* ===== THEME TOGGLE BUTTON ===== */}
+          <button
+            onClick={toggleTheme}
+            className={cn(
+              "w-full flex items-center justify-between px-4 py-3 rounded-2xl border transition-all duration-500 group",
+              isPink
+                ? "bg-gradient-to-r from-rose-50 to-pink-50 border-rose-200 hover:from-rose-100 hover:to-pink-100"
+                : "bg-white/5 border-white/10 hover:bg-white/10"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              {/* Toggle Track */}
+              <div className={cn(
+                "relative w-11 h-6 rounded-full transition-all duration-500 flex-shrink-0",
+                isPink 
+                  ? "bg-gradient-to-r from-rose-300 to-pink-400" 
+                  : "bg-slate-700"
+              )}>
+                {/* Toggle Thumb */}
+                <div className={cn(
+                  "absolute top-0.5 w-5 h-5 rounded-full shadow-md transition-all duration-500 flex items-center justify-center",
+                  isPink 
+                    ? "left-[22px] bg-white" 
+                    : "left-0.5 bg-slate-300"
+                )}>
+                  {isPink 
+                    ? <Flower2 size={10} className="text-rose-500" /> 
+                    : <Moon size={10} className="text-slate-600" />
+                  }
+                </div>
+              </div>
+              <div>
+                <p className={cn(
+                  "text-xs font-black uppercase tracking-wider",
+                  isPink ? "text-rose-600" : "text-muted-foreground"
+                )}>
+                  {isPink ? "Pink Pastel" : "Dark Mode"}
+                </p>
+                <p className="text-[10px] text-muted-foreground">Chuyển giao diện</p>
+              </div>
+            </div>
+            <span className={cn(
+              "text-[10px] font-bold px-2 py-0.5 rounded-full",
+              isPink 
+                ? "bg-rose-100 text-rose-500" 
+                : "bg-white/10 text-muted-foreground"
+            )}>
+              {isPink ? "🌸" : "🌙"}
+            </span>
+          </button>
+
+          {/* User Card */}
+          <div className={cn(
+            "rounded-[2rem] p-5 border relative overflow-hidden group",
+            isPink
+              ? "bg-gradient-to-br from-rose-50 to-pink-50 border-rose-100"
+              : "bg-gradient-to-br from-secondary/80 to-secondary/40 border-white/5"
+          )}>
             <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform duration-500">
               <Settings size={80} />
             </div>
-            
             <div className="flex items-center gap-4 mb-4 relative z-10">
               <div className="relative">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-primary to-indigo-400 flex items-center justify-center text-white font-bold shadow-lg shadow-primary/20">
+                <div className={cn(
+                  "w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold shadow-lg",
+                  isPink
+                    ? "bg-gradient-to-tr from-rose-400 to-pink-500 shadow-rose-200"
+                    : "bg-gradient-to-tr from-primary to-indigo-400 shadow-primary/20"
+                )}>
                   QT
                 </div>
                 <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-green-500 border-2 border-background" />
@@ -128,7 +203,12 @@ export default function Sidebar() {
               </div>
             </div>
             
-            <button className="w-full flex items-center justify-center gap-2 px-4 py-3 text-xs font-bold bg-white/5 hover:bg-white/10 rounded-xl transition-all duration-300 border border-white/5 relative z-10">
+            <button className={cn(
+              "w-full flex items-center justify-center gap-2 px-4 py-3 text-xs font-bold rounded-xl transition-all duration-300 border relative z-10",
+              isPink
+                ? "bg-white border-rose-100 text-rose-600 hover:bg-rose-50"
+                : "bg-white/5 border-white/5 text-foreground hover:bg-white/10"
+            )}>
               <Settings size={14} />
               Cấu hình hệ thống
             </button>

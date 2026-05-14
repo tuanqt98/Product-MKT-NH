@@ -22,6 +22,147 @@
   --color-ring: var(--ring);
 }
 
+/* ===== DARK THEME (Default) ===== */
+:root {
+  --background: oklch(0.129 0.042 264.695);
+  --foreground: oklch(0.984 0.003 247.858);
+  --card: oklch(0.155 0.040 264.695);
+  --card-foreground: oklch(0.984 0.003 247.858);
+  --popover: oklch(0.155 0.040 264.695);
+  --popover-foreground: oklch(0.984 0.003 247.858);
+  --primary: oklch(0.588 0.158 241.966);
+  --primary-foreground: oklch(0.984 0.003 247.858);
+  --secondary: oklch(0.208 0.042 265.755);
+  --secondary-foreground: oklch(0.984 0.003 247.858);
+  --muted: oklch(0.208 0.042 265.755);
+  --muted-foreground: oklch(0.708 0.011 266.387);
+  --accent: oklch(0.208 0.042 265.755);
+  --accent-foreground: oklch(0.984 0.003 247.858);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.208 0.042 265.755);
+  --input: oklch(0.208 0.042 265.755);
+  --ring: oklch(0.439 0.124 242.048);
+}
+
+/* ===== PINK PASTEL THEME ===== */
+.theme-pink {
+  /* Nền chính: Trắng sáng tinh tế */
+  --background: oklch(0.985 0.006 0);
+  /* Chữ chính: Xám đậm, không đen tuyền — dễ đọc, không gắt */
+  --foreground: oklch(0.28 0.025 330);
+
+  /* Card: Trắng thuần — phân tách rõ ràng với nền */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.28 0.025 330);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.28 0.025 330);
+
+  /* Primary: Hồng Rose sâu — nổi bật, không chói */
+  --primary: oklch(0.60 0.18 0);
+  --primary-foreground: oklch(1 0 0);
+
+  /* Secondary: Hồng pastel nhạt — làm nền cho các element phụ */
+  --secondary: oklch(0.96 0.02 0);
+  --secondary-foreground: oklch(0.45 0.08 0);
+
+  /* Muted: Hồng xám rất nhạt — không lẫn với nền trắng */
+  --muted: oklch(0.95 0.015 0);
+  --muted-foreground: oklch(0.52 0.06 330);
+
+  /* Accent: Hồng nhạt dùng cho hover, highlight */
+  --accent: oklch(0.93 0.03 0);
+  --accent-foreground: oklch(0.40 0.12 0);
+
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(1 0 0);
+
+  /* Border: Hồng rất nhạt — tạo phân cách mà không gây ồn ào */
+  --border: oklch(0.88 0.03 0);
+  --input: oklch(0.92 0.02 0);
+  --ring: oklch(0.60 0.18 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    transition: background-color 0.4s ease, color 0.3s ease;
+  }
+}
+
+/* ===== Glass utility — theme-aware ===== */
+.glass {
+  @apply bg-background/60 backdrop-blur-md;
+  border: 1px solid;
+}
+:root .glass {
+  border-color: rgba(255,255,255,0.08);
+}
+.theme-pink .glass {
+  border-color: rgba(220,150,150,0.18);
+  background: rgba(255,255,255,0.75);
+}
+
+/* Pink theme mesh gradient override */
+.theme-pink .mesh-gradient {
+  background-image:
+    radial-gradient(at 0% 0%, rgba(255,230,235,0.9) 0, transparent 55%),
+    radial-gradient(at 50% 0%, rgba(255,245,248,0.8) 0, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(255,220,230,0.7) 0, transparent 55%);
+}
+
+.gradient-text {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-600;
+}
+.theme-pink .gradient-text {
+  @apply bg-clip-text text-transparent;
+  background-image: linear-gradient(135deg, #e0526b, #f48ca0, #b54060);
+}
+
+.mesh-gradient {
+  background-image: radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+                    radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+                    radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+}
+
+/* Smooth transition for all theme-sensitive props */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color, box-shadow;
+  transition-duration: 0.35s;
+  transition-timing-function: ease;
+}
+/* Exclude animations from slow transitions */
+.animate-bounce, .animate-spin, .animate-pulse {
+  transition: none !important;
+}
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.129 0.042 264.695);
