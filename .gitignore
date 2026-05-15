@@ -27,3 +27,5 @@ brief-*.html
 # Environment
 .env
 .env.local
+.vercel
+.env*.local

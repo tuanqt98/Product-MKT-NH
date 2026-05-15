@@ -1,31 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer, 
-  AreaChart, 
-  Area,
-  PieChart,
-  Pie,
-  Cell,
-  TooltipProps
-} from 'recharts';
-import { 
-  Users, 
-  MousePointer2, 
-  Eye, 
-  TrendingUp, 
-  ArrowUpRight, 
-  ArrowDownRight,
+import dynamic from 'next/dynamic';
+import {
+  Users,
+  MousePointer2,
+  Eye,
+  TrendingUp,
   Target,
-  Info,
-  Calendar,
   BarChart3,
   Clock,
   MapPin,
@@ -33,34 +15,67 @@ import {
   Download,
   Filter
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+
+// Lazy load recharts to avoid SSR issues
+const AreaChart = dynamic(() => import('recharts').then(mod => mod.AreaChart), { ssr: false });
+const Area = dynamic(() => import('recharts').then(mod => mod.Area), { ssr: false });
+const BarChart = dynamic(() => import('recharts').then(mod => mod.BarChart), { ssr: false });
+const Bar = dynamic(() => import('recharts').then(mod => mod.Bar), { ssr: false });
+const XAxis = dynamic(() => import('recharts').then(mod => mod.XAxis), { ssr: false });
+const YAxis = dynamic(() => import('recharts').then(mod => mod.YAxis), { ssr: false });
+const CartesianGrid = dynamic(() => import('recharts').then(mod => mod.CartesianGrid), { ssr: false });
+const Tooltip = dynamic(() => import('recharts').then(mod => mod.Tooltip), { ssr: false });
+const ResponsiveContainer = dynamic(() => import('recharts').then(mod => mod.ResponsiveContainer), { ssr: false });
 
 export default function FacebookInsightsPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/facebook/insights')
+    fetch('/api/facebook/insights', { cache: 'no-store' })
       .then(res => res.json())
       .then(result => {
         setData(result);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
   }, []);
 
-  if (loading) return <div className="flex items-center justify-center h-screen"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary"></div></div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary"></div>
+      </div>
+    );
+  }
 
-  const stats = [
-    { name: 'Tiếp cận', value: data?.stats?.reach || 0, icon: Eye, color: 'text-blue-400', change: '+12%' },
-    { name: 'Tương tác', value: data?.stats?.engagement || 0, icon: Users, color: 'text-green-400', change: '+8%' },
-    { name: 'Xem trang', value: data?.stats?.views || 0, icon: MousePointer2, color: 'text-purple-400', change: '+15%' },
-    { name: 'Follow mới', value: data?.stats?.newFans || 0, icon: BarChart3, color: 'text-orange-400', change: '+5%' },
+  if (error && !data) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <p className="text-red-400 text-sm">Lỗi tải dữ liệu: {error}</p>
+          <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-primary text-white rounded-xl text-sm">
+            Thử lại
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const statsData = [
+    { name: 'Tiếp cận', value: data?.stats?.reach ?? 0, icon: Eye, color: 'text-blue-400', change: '+12%' },
+    { name: 'Tương tác', value: data?.stats?.engagement ?? 0, icon: Users, color: 'text-green-400', change: '+8%' },
+    { name: 'Xem trang', value: data?.stats?.views ?? 0, icon: MousePointer2, color: 'text-purple-400', change: '+15%' },
+    { name: 'Follow mới', value: data?.stats?.newFans ?? 0, icon: BarChart3, color: 'text-orange-400', change: '+5%' },
   ];
 
-  // Xử lý dữ liệu nhân khẩu học (Fake data dựa trên cấu trúc thật nếu API chưa trả về đủ)
-  // Xử lý dữ liệu nhân khẩu học thực tế từ API
-  const demoData = React.useMemo(() => {
+  const chartData = data?.chartData ?? [];
+
+  const demoData = (() => {
     const defaultData = [
       { name: '18-24', value: 0 },
       { name: '25-34', value: 0 },
@@ -68,25 +83,29 @@ export default function FacebookInsightsPage() {
       { name: '45-54', value: 0 },
       { name: '55+', value: 0 },
     ];
-    
-    if (!data?.demographics || Object.keys(data.demographics).length === 0) return defaultData;
-
     try {
-      const ranges = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
-      return ranges.map(range => {
-        const male = data.demographics[`M.${range}`] || 0;
-        const female = data.demographics[`F.${range}`] || 0;
-        return {
-          name: range === '65+' ? '65+' : (range === '55-64' ? '55+' : range),
-          value: male + female
-        };
-      }).slice(0, 5);
-    } catch (e) {
+      const demo = data?.demographics;
+      if (!demo || typeof demo !== 'object' || Object.keys(demo).length === 0) return defaultData;
+      const ranges = ['18-24', '25-34', '35-44', '45-54', '55-64'];
+      return ranges.map(range => ({
+        name: range === '55-64' ? '55+' : range,
+        value: (Number(demo[`M.${range}`]) || 0) + (Number(demo[`F.${range}`]) || 0)
+      }));
+    } catch {
       return defaultData;
     }
-  }, [data]);
+  })();
+
+  const locations = data?.locations ?? [
+    { city: 'Hà Nội', percent: 62 },
+    { city: 'TP. HCM', percent: 24 },
+    { city: 'Bắc Ninh', percent: 10 },
+    { city: 'Khác', percent: 4 },
+  ];
 
   const locationColors = ['bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-slate-500'];
+
+  const contentAnalysis = data?.contentAnalysis ?? [];
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -97,7 +116,7 @@ export default function FacebookInsightsPage() {
             <h2 className="text-3xl font-black tracking-tight">Facebook Insights 2.0</h2>
           </div>
           <p className="text-sm text-muted-foreground">Phân tích dữ liệu & Đối tượng khách hàng In Nhật Hàn</p>
-          {data?.error && <p className="text-[10px] text-red-400 mt-2 font-bold uppercase tracking-widest">⚠️ Lỗi kết nối: {data.error}</p>}
+          {data?.error && <p className="text-[10px] text-red-400 mt-2 font-bold uppercase tracking-widest">⚠️ Demo Mode: {data.error}</p>}
         </div>
         <div className="flex gap-3">
           <button className="glass px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-white/10 transition-all">
@@ -111,14 +130,14 @@ export default function FacebookInsightsPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => (
+        {statsData.map((stat) => (
           <div key={stat.name} className="glass p-6 rounded-3xl border border-white/5 hover:border-primary/30 transition-all">
             <div className="flex justify-between items-start mb-4">
-              <div className={cn("p-3 rounded-2xl bg-white/5", stat.color)}><stat.icon size={22} /></div>
+              <div className={`p-3 rounded-2xl bg-white/5 ${stat.color}`}><stat.icon size={22} /></div>
               <span className="text-[10px] font-bold bg-green-500/10 text-green-400 px-2 py-1 rounded-lg">{stat.change}</span>
             </div>
             <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">{stat.name}</p>
-            <h3 className="text-3xl font-black mt-1 tracking-tight">{(stat.value || 0).toLocaleString()}</h3>
+            <h3 className="text-3xl font-black mt-1 tracking-tight">{Number(stat.value || 0).toLocaleString()}</h3>
           </div>
         ))}
       </div>
@@ -132,7 +151,7 @@ export default function FacebookInsightsPage() {
           <h3 className="text-xl font-bold mb-8">Xu hướng Tăng trưởng</h3>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data?.chartData || []}>
+              <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="colorReach" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
@@ -168,7 +187,7 @@ export default function FacebookInsightsPage() {
           </div>
           <div className="pt-6 border-t border-white/5">
             <p className="text-xs text-muted-foreground leading-relaxed italic">
-              "Đăng bài vào khung giờ này giúp tăng 45% khả năng hiển thị tự nhiên."
+              &quot;Đăng bài vào khung giờ này giúp tăng 45% khả năng hiển thị tự nhiên.&quot;
             </p>
           </div>
         </div>
@@ -187,28 +206,21 @@ export default function FacebookInsightsPage() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <p className="text-xs text-center text-muted-foreground mt-4">
-            {(demoData[1]?.value || 0) > (demoData[0]?.value || 0) ? 'Khách hàng mục tiêu chủ yếu từ 25-44 tuổi' : 'Đang cập nhật phân tích đối tượng...'}
-          </p>
+          <p className="text-xs text-center text-muted-foreground mt-4">Đang phân tích nhóm đối tượng khách hàng...</p>
         </div>
 
         {/* Top Locations */}
         <div className="glass p-8 rounded-[2.5rem] border border-white/5">
           <h3 className="text-xl font-bold mb-6 flex items-center gap-2"><MapPin size={20} className="text-red-400"/> Khu vực trọng điểm</h3>
           <div className="space-y-4">
-            {(data?.locations || [
-              { city: 'Hà Nội', percent: 65 },
-              { city: 'TP. Hồ Chí Minh', percent: 20 },
-              { city: 'Bắc Ninh', percent: 10 },
-              { city: 'Khác', percent: 5 },
-            ]).map((item: any, idx: number) => (
-              <div key={item.city} className="space-y-2">
+            {locations.map((item: any, idx: number) => (
+              <div key={idx} className="space-y-2">
                 <div className="flex justify-between text-xs font-bold">
                   <span>{item.city}</span>
                   <span>{item.percent}%</span>
                 </div>
                 <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                  <div className={cn("h-full rounded-full", locationColors[idx] || 'bg-slate-500')} style={{ width: `${item.percent}%` }} />
+                  <div className={`h-full rounded-full ${locationColors[idx] || 'bg-slate-500'}`} style={{ width: `${item.percent}%` }} />
                 </div>
               </div>
             ))}
@@ -219,26 +231,22 @@ export default function FacebookInsightsPage() {
         <div className="glass p-8 rounded-[2.5rem] border border-white/5">
           <h3 className="text-xl font-bold mb-6 flex items-center gap-2"><Smartphone size={20} className="text-indigo-400"/> Loại nội dung xịn nhất</h3>
           <div className="space-y-6">
-            {(data?.contentAnalysis || []).slice(0, 3).map((content: any, idx: number) => (
-              <div key={content.id} className="flex items-center gap-4">
-                <div className={cn(
-                  "h-12 w-12 rounded-2xl flex items-center justify-center font-bold",
+            {contentAnalysis.length > 0 ? contentAnalysis.slice(0, 3).map((content: any, idx: number) => (
+              <div key={idx} className="flex items-center gap-4">
+                <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-bold ${
                   content.type === 'video' ? "bg-indigo-500/20 text-indigo-400" : "bg-emerald-500/20 text-emerald-400"
-                )}>
-                  {content.type === 'video' ? 'V' : (content.type === 'photo' ? 'P' : 'S')}
+                }`}>
+                  {content.type === 'video' ? 'V' : 'P'}
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold line-clamp-1">{content.message}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold truncate">{String(content.message || '(Bài viết)')}</p>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
-                    {content.reach.toLocaleString()} Reach • {content.engagement.toLocaleString()} Eng.
+                    {Number(content.reach || 0).toLocaleString()} Reach • {Number(content.engagement || 0).toLocaleString()} Eng.
                   </p>
                 </div>
-                <div className="text-green-400 font-black text-sm">
-                  {idx === 0 ? 'TOP' : ''}
-                </div>
+                {idx === 0 && <div className="text-green-400 font-black text-sm">TOP</div>}
               </div>
-            ))}
-            {(!data?.contentAnalysis || data.contentAnalysis.length === 0) && (
+            )) : (
               <p className="text-xs text-muted-foreground text-center py-4">Đang phân tích bài viết...</p>
             )}
           </div>
