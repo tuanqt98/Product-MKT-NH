@@ -67,9 +67,16 @@ export default function Dashboard() {
           <h2 className="text-2xl md:text-3xl font-black tracking-tight">Chào buổi sáng, Sếp!</h2>
           <p className="text-muted-foreground mt-2 text-sm md:text-base">Hôm nay chúng ta sẽ tối ưu hóa những gì cho Nhật Hàn?</p>
         </div>
-        <div className="w-fit bg-primary/10 border border-primary/20 px-4 py-2 rounded-full flex items-center gap-2 text-primary text-xs md:text-sm font-bold">
-          <Sparkles size={14} />
-          {loading ? "Đang đồng bộ..." : "AI v2.0 Online"}
+        <div className="flex items-center gap-4">
+          <Link href="/special" className="group relative px-6 py-3 bg-pink-100 hover:bg-pink-200 text-pink-600 rounded-2xl font-black text-sm transition-all hover:scale-105 hover:shadow-lg hover:shadow-pink-200/50 flex items-center gap-2 overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-pink-400/10 to-purple-400/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+            <Sparkles size={16} className="animate-pulse" />
+            Click me
+          </Link>
+          <div className="w-fit bg-primary/10 border border-primary/20 px-4 py-2 rounded-full flex items-center gap-2 text-primary text-xs md:text-sm font-bold">
+            <Sparkles size={14} />
+            {loading ? "Đang đồng bộ..." : "AI v2.0 Online"}
+          </div>
         </div>
       </header>
 
