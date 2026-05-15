@@ -59,13 +59,28 @@ export default function FacebookInsightsPage() {
   ];
 
   // Xử lý dữ liệu nhân khẩu học (Fake data dựa trên cấu trúc thật nếu API chưa trả về đủ)
-  const demoData = [
-    { name: '18-24', value: 15 },
-    { name: '25-34', value: 45 },
-    { name: '35-44', value: 25 },
-    { name: '45-54', value: 10 },
-    { name: '55+', value: 5 },
-  ];
+  // Xử lý dữ liệu nhân khẩu học thực tế từ API
+  const demoData = React.useMemo(() => {
+    if (!data?.demographics) return [
+      { name: '18-24', value: 0 },
+      { name: '25-34', value: 0 },
+      { name: '35-44', value: 0 },
+      { name: '45-54', value: 0 },
+      { name: '55+', value: 0 },
+    ];
+
+    const ranges = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
+    return ranges.map(range => {
+      const male = data.demographics[`M.${range}`] || 0;
+      const female = data.demographics[`F.${range}`] || 0;
+      return {
+        name: range === '65+' ? '65+' : (range === '55-64' ? '55+' : range),
+        value: male + female
+      };
+    }).slice(0, 5); // Lấy 5 nhóm đầu để khớp layout
+  }, [data]);
+
+  const locationColors = ['bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-slate-500'];
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -122,6 +137,7 @@ export default function FacebookInsightsPage() {
                 <YAxis hide />
                 <Tooltip contentStyle={{backgroundColor: '#000', border: 'none', borderRadius: '12px'}} />
                 <Area type="monotone" dataKey="reach" stroke="#3b82f6" strokeWidth={4} fill="url(#colorReach)" />
+                <Area type="monotone" dataKey="engagement" stroke="#10b981" strokeWidth={4} fill="transparent" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -164,26 +180,28 @@ export default function FacebookInsightsPage() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <p className="text-xs text-center text-muted-foreground mt-4">Khách hàng mục tiêu chủ yếu từ 25-44 tuổi</p>
+          <p className="text-xs text-center text-muted-foreground mt-4">
+            {demoData[1].value > demoData[0].value ? 'Khách hàng mục tiêu chủ yếu từ 25-44 tuổi' : 'Đang cập nhật phân tích độ tuổi...'}
+          </p>
         </div>
 
         {/* Top Locations */}
         <div className="glass p-8 rounded-[2.5rem] border border-white/5">
           <h3 className="text-xl font-bold mb-6 flex items-center gap-2"><MapPin size={20} className="text-red-400"/> Khu vực trọng điểm</h3>
           <div className="space-y-4">
-            {[
-              { city: 'Hà Nội', percent: 65, color: 'bg-blue-500' },
-              { city: 'TP. Hồ Chí Minh', percent: 20, color: 'bg-green-500' },
-              { city: 'Bắc Ninh', percent: 10, color: 'bg-orange-500' },
-              { city: 'Khác', percent: 5, color: 'bg-slate-500' },
-            ].map(item => (
+            {(data?.locations || [
+              { city: 'Hà Nội', percent: 65 },
+              { city: 'TP. Hồ Chí Minh', percent: 20 },
+              { city: 'Bắc Ninh', percent: 10 },
+              { city: 'Khác', percent: 5 },
+            ]).map((item: any, idx: number) => (
               <div key={item.city} className="space-y-2">
                 <div className="flex justify-between text-xs font-bold">
                   <span>{item.city}</span>
                   <span>{item.percent}%</span>
                 </div>
                 <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                  <div className={cn("h-full rounded-full", item.color)} style={{ width: `${item.percent}%` }} />
+                  <div className={cn("h-full rounded-full", locationColors[idx] || 'bg-slate-500')} style={{ width: `${item.percent}%` }} />
                 </div>
               </div>
             ))}
@@ -194,22 +212,28 @@ export default function FacebookInsightsPage() {
         <div className="glass p-8 rounded-[2.5rem] border border-white/5">
           <h3 className="text-xl font-bold mb-6 flex items-center gap-2"><Smartphone size={20} className="text-indigo-400"/> Loại nội dung xịn nhất</h3>
           <div className="space-y-6">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold">V</div>
-              <div className="flex-1">
-                <p className="text-sm font-bold">Video quay xưởng</p>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Tương tác cao nhất</p>
+            {(data?.contentAnalysis || []).slice(0, 3).map((content: any, idx: number) => (
+              <div key={content.id} className="flex items-center gap-4">
+                <div className={cn(
+                  "h-12 w-12 rounded-2xl flex items-center justify-center font-bold",
+                  content.type === 'video' ? "bg-indigo-500/20 text-indigo-400" : "bg-emerald-500/20 text-emerald-400"
+                )}>
+                  {content.type === 'video' ? 'V' : (content.type === 'photo' ? 'P' : 'S')}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold line-clamp-1">{content.message}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                    {content.reach.toLocaleString()} Reach • {content.engagement.toLocaleString()} Eng.
+                  </p>
+                </div>
+                <div className="text-green-400 font-black text-sm">
+                  {idx === 0 ? 'TOP' : ''}
+                </div>
               </div>
-              <div className="text-green-400 font-black text-sm">+24%</div>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold">I</div>
-              <div className="flex-1">
-                <p className="text-sm font-bold">Ảnh mẫu thiết kế</p>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Ổn định</p>
-              </div>
-              <div className="text-white/40 font-black text-sm">+5%</div>
-            </div>
+            ))}
+            {(!data?.contentAnalysis || data.contentAnalysis.length === 0) && (
+              <p className="text-xs text-muted-foreground text-center py-4">Đang phân tích bài viết...</p>
+            )}
           </div>
         </div>
       </div>
