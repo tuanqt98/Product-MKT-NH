@@ -85,6 +85,39 @@
 
 ---
 
+## 🚀 GIAI ĐOẠN 2: HỆ SINH THÁI MARKETING THÔNG MINH (VISION 2025)
+
+*Phần này tập trung vào việc biến dữ liệu thành doanh thu và tự động hóa toàn diện quy trình bán hàng.*
+
+### 7. AI CRM & Lead Scoring (Quản trị khách hàng thông minh)
+| ID | Tính năng | Mô tả chi tiết | Công nghệ |
+|:---:|:---:|:---:|:---:|
+| 7.1 | **Auto-Labeling** | AI tự động gắn thẻ khách hàng (VIP, Hỏi giá, Đang phàn nàn, Khách cũ) dựa trên hội thoại | NLP Classifier |
+| 7.2 | **Lead Scoring** | Chấm điểm tiềm năng mua hàng của khách để ưu tiên Admin tư vấn trước | AI Analysis |
+| 7.3 | **Customer Persona** | Tự động xây dựng hồ sơ sở thích khách hàng để gợi ý mẫu in phù hợp | Big Data |
+
+### 8. AI Commerce Automation (Tự động hóa bán hàng)
+| ID | Tính năng | Mô tả chi tiết | Công nghệ |
+|:---:|:---:|:---:|:---:|
+| 8.1 | **Smart Order Extraction** | AI tự bóc tách Tên, SĐT, Địa chỉ, Loại sản phẩm in từ tin nhắn để tạo đơn hàng nháp | Gemini Extraction |
+| 8.2 | **AI Price Advisor** | AI tự tính toán báo giá dựa trên kích thước, số lượng và chất liệu khách yêu cầu | Logic Engine |
+| 8.3 | **Inventory Sync** | Tự động kiểm tra tồn kho vật liệu in khi khách hỏi đặt hàng | ERP Integration |
+
+### 9. Multi-Platform Growth (Mở rộng đa kênh)
+| ID | Tính năng | Mô tả chi tiết | Công nghệ |
+|:---:|:---:|:---:|:---:|
+| 9.1 | **Zalo OA Integration** | Đồng bộ tin nhắn và AI Auto-reply sang cả Zalo Official Account | Zalo API |
+| 9.2 | **TikTok Shop Spy** | Theo dõi các sản phẩm in ấn đang bán chạy nhất trên TikTok Shop | Web Scraper |
+| 9.3 | **Unified Inbox** | Một hộp thư duy nhất quản lý cả FB, Zalo, Web Chat | WebSocket |
+
+### 10. AI Creative Studio 2.0 (Nâng cấp sáng tạo)
+| ID | Tính năng | Mô tả chi tiết | Công nghệ |
+|:---:|:---:|:---:|:---:|
+| 10.1| **Mockup Generator** | Tự động áp ảnh thiết kế lên các phối cảnh thật (Cốc, Áo, Túi bóng, Hộp cứng) | AI Image Gen |
+| 10.2| **AI Video Ads** | Tự tạo video ngắn giới thiệu sản phẩm in ấn từ 1 tấm ảnh duy nhất | Video AI |
+
+---
+
 ## 📋 THỨ TỰ ƯU TIÊN ĐỀ XUẤT
 
 ```
