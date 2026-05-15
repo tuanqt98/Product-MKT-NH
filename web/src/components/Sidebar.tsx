@@ -77,10 +77,10 @@ export default function Sidebar() {
                 ? "bg-gradient-to-br from-rose-400 to-pink-600"
                 : "bg-gradient-to-br from-indigo-500 to-purple-600"
             )}>
-              <span className="text-white font-bold text-lg">L</span>
+              <span className="text-white font-bold text-lg">N</span>
             </div>
             <h1 className="text-xl font-black tracking-tight text-foreground">
-              LÊ DƯƠNG <span className="text-primary">JKC</span>
+              NHẬT HÀN <span className="text-primary">JKC</span>
             </h1>
           </div>
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest opacity-60">Marketing OS</p>
