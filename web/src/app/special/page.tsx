@@ -63,8 +63,8 @@ export default function SpecialPage() {
                 
                 <div className="relative rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl">
                   <img 
-                    src="https://images.unsplash.com/photo-1518133910546-b6c2fb7d79e3?q=80&w=1000&auto=format&fit=crop" 
-                    alt="Success Celebration" 
+                    src="/bao-cao.jpg" 
+                    alt="Báo cáo Nhật Hàn" 
                     className="w-full h-full object-cover aspect-[4/5] group-hover:scale-110 transition-transform duration-1000"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-pink-500/20 to-transparent" />
