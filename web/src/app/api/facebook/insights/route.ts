@@ -8,71 +8,77 @@ export async function GET() {
   const ACCESS_TOKEN = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
 
   if (!PAGE_ID || !ACCESS_TOKEN) {
-    return NextResponse.json({ connected: false, error: 'Thiếu cấu hình Token/Page ID' });
+    return NextResponse.json({ connected: false, error: 'Missing configuration' });
   }
 
   try {
-    // 1. Lấy thông tin cơ bản Page
+    // 1. Thông tin Page cơ bản
     const pageResponse = await fetch(
       `https://graph.facebook.com/v20.0/${PAGE_ID}?fields=name,fan_count,followers_count,picture&access_token=${ACCESS_TOKEN}`
     );
     const pageData = await pageResponse.json();
 
-    // 2. Tính toán khoảng thời gian 28 ngày để khớp với Business Suite
-    const until = Math.floor(Date.now() / 1000);
-    const since = until - (28 * 24 * 60 * 60); // 28 ngày trước
-
+    // 2. Lấy Insights với Period = days_28 để khớp tuyệt đối với Business Suite
+    // Chúng ta sẽ lấy cả 'day' cho biểu đồ và 'days_28' cho con số tổng
     const metrics = [
       'page_views_total',
       'page_impressions_unique',
       'page_post_engagements',
       'page_fan_adds_unique',
-      'page_fans_gender_age',
-      'page_fans_country',
     ].join(',');
 
+    // Gọi API lấy cả dữ liệu ngày và dữ liệu 28 ngày
     const insightsResponse = await fetch(
-      `https://graph.facebook.com/v20.0/${PAGE_ID}/insights?metric=${metrics}&period=day&since=${since}&until=${until}&access_token=${ACCESS_TOKEN}`
+      `https://graph.facebook.com/v20.0/${PAGE_ID}/insights?metric=${metrics}&period=day,days_28&access_token=${ACCESS_TOKEN}`
     );
     const insightsData = await insightsResponse.json();
 
     const stats: any = { reach: 0, engagement: 0, views: 0, newFans: 0 };
-    let demographics: any = {};
-    let countryData: any = {};
     let chartData: any[] = [];
     const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 
     if (insightsData.data) {
       insightsData.data.forEach((item: any) => {
-        const values = item.values || [];
-        // Cộng dồn tất cả giá trị trong 28 ngày
-        const totalValue = values.reduce((acc: number, curr: any) => acc + (Number(curr.value) || 0), 0);
-        const latestValue = values.length > 0 ? values[values.length - 1].value : 0;
-
-        if (item.name === 'page_impressions_unique') {
-          stats.reach = totalValue;
-          // Chart data lấy 7 ngày gần nhất cho biểu đồ tuần
-          chartData = values.slice(-7).map((v: any) => ({
-            name: days[new Date(v.end_time).getDay()],
-            reach: Number(v.value) || 0,
-            engagement: 0
-          }));
+        // Nếu là dữ liệu 28 ngày -> Lấy làm số tổng (Card chính)
+        if (item.period === 'days_28') {
+          const total = item.values?.[item.values.length - 1]?.value || 0;
+          if (item.name === 'page_impressions_unique') stats.reach = total;
+          if (item.name === 'page_post_engagements') stats.engagement = total;
+          if (item.name === 'page_views_total') stats.views = total;
+          if (item.name === 'page_fan_adds_unique') stats.newFans = total;
         }
-        if (item.name === 'page_post_engagements') {
-          stats.engagement = totalValue;
-          values.slice(-7).forEach((v: any, idx: number) => {
-            if (chartData[idx]) chartData[idx].engagement = Number(v.value) || 0;
-          });
-        }
-        if (item.name === 'page_views_total') stats.views = totalValue;
-        if (item.name === 'page_fan_adds_unique') stats.newFans = totalValue;
         
-        if (item.name === 'page_fans_gender_age') demographics = latestValue || {};
-        if (item.name === 'page_fans_country') countryData = latestValue || {};
+        // Nếu là dữ liệu theo ngày -> Dùng vẽ biểu đồ
+        if (item.period === 'day') {
+          if (item.name === 'page_impressions_unique') {
+            chartData = (item.values || []).slice(-7).map((v: any) => ({
+              name: days[new Date(v.end_time).getDay()],
+              reach: Number(v.value) || 0,
+              engagement: 0
+            }));
+          }
+          if (item.name === 'page_post_engagements') {
+            (item.values || []).slice(-7).forEach((v: any, idx: number) => {
+              if (chartData[idx]) chartData[idx].engagement = Number(v.value) || 0;
+            });
+          }
+        }
       });
     }
 
-    // 3. Lấy bài viết
+    // 3. Lấy thêm giới tính/độ tuổi (chỉ hỗ trợ period=lifetime)
+    const extraResponse = await fetch(
+      `https://graph.facebook.com/v20.0/${PAGE_ID}/insights?metric=page_fans_gender_age,page_fans_country&period=lifetime&access_token=${ACCESS_TOKEN}`
+    );
+    const extraData = await extraResponse.json();
+    let demographics = {};
+    let countryData = {};
+    if (extraData.data) {
+      demographics = extraData.data.find((i: any) => i.name === 'page_fans_gender_age')?.values?.[0]?.value || {};
+      countryData = extraData.data.find((i: any) => i.name === 'page_fans_country')?.values?.[0]?.value || {};
+    }
+
+    // 4. Lấy bài viết mới nhất
     const postsResponse = await fetch(
       `https://graph.facebook.com/v20.0/${PAGE_ID}/posts?fields=message,created_time,type,insights.metric(post_impressions_unique,post_engagements)&limit=5&access_token=${ACCESS_TOKEN}`
     );
@@ -105,6 +111,7 @@ export async function GET() {
     });
 
   } catch (error: any) {
+    console.error("Aggregation Error:", error);
     return NextResponse.json({ connected: false, error: error.message });
   }
 }
