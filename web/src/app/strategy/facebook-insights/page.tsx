@@ -116,7 +116,37 @@ export default function FacebookInsightsPage() {
             <h2 className="text-3xl font-black tracking-tight">Facebook Insights 2.0</h2>
           </div>
           <p className="text-sm text-muted-foreground">Phân tích dữ liệu & Đối tượng khách hàng In Nhật Hàn</p>
-          {data?.error && <p className="text-[10px] text-red-400 mt-2 font-bold uppercase tracking-widest">⚠️ Demo Mode: {data.error}</p>}
+          
+          <div className="flex flex-wrap items-center gap-3 mt-4">
+            {data?.connected ? (
+              <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2.5 rounded-2xl animate-in slide-in-from-left duration-500">
+                <div className="relative">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-emerald-400 blur-[2px] animate-ping" />
+                </div>
+                <div className="flex items-center gap-2.5">
+                  {data.page?.avatar && (
+                    <img src={data.page.avatar} alt="avatar" className="w-6 h-6 rounded-full ring-2 ring-emerald-500/20 object-cover shadow-sm" />
+                  )}
+                  <span className="text-[10px] font-black uppercase tracking-[0.15em] text-emerald-500">
+                    Đã kết nối: <span className="text-foreground">{data.page?.name}</span>
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 px-4 py-2.5 rounded-2xl">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                <span className="text-[10px] font-black uppercase tracking-[0.15em] text-red-500">Mất kết nối Facebook</span>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 px-4 py-2.5 rounded-2xl">
+              <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+              <span className="text-[10px] font-black uppercase tracking-[0.15em] text-blue-400">API v20.0 - LIVE</span>
+            </div>
+          </div>
+
+          {data?.error && !data.connected && <p className="text-[10px] text-red-400 mt-2 font-bold uppercase tracking-widest">⚠️ Lỗi: {data.error}</p>}
         </div>
         <div className="flex gap-3">
           <button className="glass px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-white/10 transition-all">
