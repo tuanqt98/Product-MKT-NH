@@ -190,12 +190,12 @@ export default function Sidebar() {
                     ? "bg-gradient-to-tr from-rose-400 to-pink-500 shadow-rose-200"
                     : "bg-gradient-to-tr from-primary to-indigo-400 shadow-primary/20"
                 )}>
-                  QT
+                  M
                 </div>
                 <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-green-500 border-2 border-background" />
               </div>
               <div>
-                <p className="text-[0.95rem] font-bold text-foreground">Sếp Quý Tộc</p>
+                <p className="text-[0.95rem] font-bold text-foreground">Marketing</p>
                 <div className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                   <p className="text-[0.75rem] font-bold text-primary uppercase tracking-wider">Premium Plan</p>
