@@ -45,6 +45,8 @@ export default function Sidebar() {
   const { theme, toggleTheme } = useTheme();
   const isPink = theme === 'pink';
 
+  if (pathname === '/special') return null;
+
   return (
     <>
       {/* Mobile Toggle Button */}

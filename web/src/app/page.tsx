@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
   const [stats, setStats] = useState([
-    { name: 'Lượt tiếp cận (7đ)', value: '0', icon: Zap, color: 'text-yellow-400' },
+    { name: 'Lượt tiếp cận (28đ)', value: '0', icon: Zap, color: 'text-yellow-400' },
     { name: 'Lượt tương tác', value: '0', icon: TrendingUp, color: 'text-green-400' },
     { name: 'Lượt xem Trang', value: '0', icon: Clock, color: 'text-blue-400' },
     { name: 'Followers mới', value: '0', icon: Target, color: 'text-purple-400' },
@@ -34,12 +34,12 @@ export default function Dashboard() {
       .then(data => {
         if (data.connected && data.stats) {
           setStats([
-            { name: 'Lượt tiếp cận (7đ)', value: data.stats.reach.toLocaleString(), icon: Zap, color: 'text-yellow-400' },
+            { name: 'Lượt tiếp cận (28đ)', value: data.stats.reach.toLocaleString(), icon: Zap, color: 'text-yellow-400' },
             { name: 'Lượt tương tác', value: data.stats.engagement.toLocaleString(), icon: TrendingUp, color: 'text-green-400' },
             { name: 'Lượt xem Trang', value: data.stats.views.toLocaleString(), icon: Clock, color: 'text-blue-400' },
             { name: 'Followers mới', value: data.stats.newFans.toLocaleString(), icon: Target, color: 'text-purple-400' },
           ]);
-          setHistory(data.recentPosts || []);
+          setHistory(data.contentAnalysis || []);
         }
         setLoading(false);
       })

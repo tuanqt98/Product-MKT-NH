@@ -30,7 +30,7 @@ export async function GET() {
       'page_views_total',
       'page_impressions_unique',
       'page_post_engagements',
-      'page_fan_adds_unique',
+      'page_daily_follows_unique',
     ].join(',');
 
     const insightsResponse = await fetch(
@@ -39,12 +39,12 @@ export async function GET() {
     const insightsData = await insightsResponse.json();
 
     if (insightsData.error) {
-      console.error("FB API Error:", insightsData.error);
-      return NextResponse.json({ connected: false, error: "Lỗi lấy dữ liệu từ Facebook" });
+      console.error("FB API Error Details:", JSON.stringify(insightsData.error, null, 2));
+      return NextResponse.json({ connected: false, error: insightsData.error.message });
     }
 
     const stats: any = { reach: 0, engagement: 0, views: 0, newFans: 0 };
-    let chartData: any[] = [];
+    const dailyData: Record<string, { name: string, reach: number, engagement: number }> = {};
     const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 
     if (insightsData.data) {
@@ -56,23 +56,35 @@ export async function GET() {
 
         if (item.name === 'page_impressions_unique') {
           stats.reach = total;
-          // Chart lấy 7 ngày gần nhất
-          chartData = values.slice(-7).map((v: any) => ({
-            name: days[new Date(v.end_time).getDay()],
-            reach: Number(v.value) || 0,
-            engagement: 0
-          }));
+          // Chuẩn bị dữ liệu cho chart 7 ngày cuối
+          values.slice(-7).forEach((v: any) => {
+            const date = new Date(v.end_time);
+            const dateKey = date.toISOString().split('T')[0];
+            if (!dailyData[dateKey]) {
+              dailyData[dateKey] = { name: days[date.getDay()], reach: 0, engagement: 0 };
+            }
+            dailyData[dateKey].reach = Number(v.value) || 0;
+          });
         }
         if (item.name === 'page_post_engagements') {
           stats.engagement = total;
-          values.slice(-7).forEach((v: any, idx: number) => {
-            if (chartData[idx]) chartData[idx].engagement = Number(v.value) || 0;
+          values.slice(-7).forEach((v: any) => {
+            const date = new Date(v.end_time);
+            const dateKey = date.toISOString().split('T')[0];
+            if (!dailyData[dateKey]) {
+              dailyData[dateKey] = { name: days[date.getDay()], reach: 0, engagement: 0 };
+            }
+            dailyData[dateKey].engagement = Number(v.value) || 0;
           });
         }
         if (item.name === 'page_views_total') stats.views = total;
-        if (item.name === 'page_fan_adds_unique') stats.newFans = total;
+        if (item.name === 'page_daily_follows_unique') stats.newFans = total;
       });
     }
+
+    const chartData = Object.entries(dailyData)
+      .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+      .map(([_, value]) => value);
 
     // 3. Lấy nhân khẩu học (Lifetime)
     const extraResponse = await fetch(
