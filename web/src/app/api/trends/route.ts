@@ -5,36 +5,6 @@ export const revalidate = 0;
 
 const TREND_POOL = [
   {
-    id: 'trend-01',
-    title: "Eco-Minimalism (Tối giản sinh thái)",
-    category: "Bao bì",
-    image: "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?q=80&w=1000&auto=format&fit=crop",
-    description: "Sử dụng giấy kraft thô kết hợp với mực in thực vật và font chữ không chân mảnh.",
-    whyHot: "Người tiêu dùng Gen Z đang cực kỳ quan tâm đến môi trường. Bao bì trông 'mộc' tạo cảm giác an tâm.",
-    suggestion: "Áp dụng cho các dòng hộp quà tặng cao cấp hoặc túi giấy cho shop thời trang organic của Nhật Hàn.",
-    score: 95
-  },
-  {
-    id: 'trend-02',
-    title: "Cyberpunk Gradient (Hiệu ứng Neon)",
-    category: "Ấn phẩm Marketing",
-    image: "https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=1000&auto=format&fit=crop",
-    description: "Sử dụng các dải màu chuyển động mạnh giữa tím, xanh neon và hồng.",
-    whyHot: "Ảnh hưởng từ văn hóa Game và Tech. Cực kỳ bắt mắt trên Facebook/TikTok Feed.",
-    suggestion: "Dùng cho các banner quảng cáo dịch vụ in nhanh hoặc các mẫu tờ rơi cho sự kiện công nghệ.",
-    score: 88
-  },
-  {
-    id: 'trend-03',
-    title: "Tactile Textures (Bề mặt xúc giác)",
-    category: "Kỹ thuật in",
-    image: "https://images.unsplash.com/photo-1517142089942-ba376ce32a2e?q=80&w=1000&auto=format&fit=crop",
-    description: "In dập nổi (Embossing) hoặc phủ UV định hình tạo chiều sâu cho bề mặt giấy.",
-    whyHot: "Khách hàng muốn cảm giác 'chạm' thật khi cầm sản phẩm. Tăng giá trị cảm nhận của thương hiệu.",
-    suggestion: "Đẩy mạnh dịch vụ in dập nổi cho danh thiếp cao cấp và bìa Catalogue của khách hàng Nhật Hàn.",
-    score: 92
-  },
-  {
     id: 'trend-04',
     title: "Y2K Revival (Thẩm mỹ năm 2000)",
     category: "Design Concept",
@@ -93,22 +63,51 @@ const TREND_POOL = [
     whyHot: "Phù hợp với xu hướng 'Wellness' và 'Self-care'. Tạo cảm giác thủ công và sang trọng.",
     suggestion: "Áp dụng cho bao bì trà, nến thơm hoặc các sản phẩm thủ công nghệ thuật.",
     score: 93
+  },
+  {
+    id: 'trend-01',
+    title: "Eco-Minimalism (Tối giản sinh thái)",
+    category: "Bao bì",
+    image: "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?q=80&w=1000&auto=format&fit=crop",
+    description: "Sử dụng giấy kraft thô kết hợp với mực in thực vật và font chữ không chân mảnh.",
+    whyHot: "Người tiêu dùng Gen Z đang cực kỳ quan tâm đến môi trường. Bao bì trông 'mộc' tạo cảm giác an tâm.",
+    suggestion: "Áp dụng cho các dòng hộp quà tặng cao cấp hoặc túi giấy cho shop thời trang organic của Nhật Hàn.",
+    score: 95
+  },
+  {
+    id: 'trend-02',
+    title: "Cyberpunk Gradient (Hiệu ứng Neon)",
+    category: "Ấn phẩm Marketing",
+    image: "https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=1000&auto=format&fit=crop",
+    description: "Sử dụng các dải màu chuyển động mạnh giữa tím, xanh neon và hồng.",
+    whyHot: "Ảnh hưởng từ văn hóa Game và Tech. Cực kỳ bắt mắt trên Facebook/TikTok Feed.",
+    suggestion: "Dùng cho các banner quảng cáo dịch vụ in nhanh hoặc các mẫu tờ rơi cho sự kiện công nghệ.",
+    score: 88
+  },
+  {
+    id: 'trend-03',
+    title: "Tactile Textures (Bề mặt xúc giác)",
+    category: "Kỹ thuật in",
+    image: "https://images.unsplash.com/photo-1517142089942-ba376ce32a2e?q=80&w=1000&auto=format&fit=crop",
+    description: "In dập nổi (Embossing) hoặc phủ UV định hình tạo chiều sâu cho bề mặt giấy.",
+    whyHot: "Khách hàng muốn cảm giác 'chạm' thật khi cầm sản phẩm. Tăng giá trị cảm nhận của thương hiệu.",
+    suggestion: "Đẩy mạnh dịch vụ in dập nổi cho danh thiếp cao cấp và bìa Catalogue của khách hàng Nhật Hàn.",
+    score: 92
   }
 ];
 
 export async function GET() {
-  // Lấy ngày hiện tại trong năm để làm seed xoay vòng xu hướng
   const now = new Date();
   const start = new Date(now.getFullYear(), 0, 0);
   const diff = now.getTime() - start.getTime();
   const oneDay = 1000 * 60 * 60 * 24;
   const dayOfYear = Math.floor(diff / oneDay);
 
-  // Chọn 3 xu hướng dựa trên ngày (xoay vòng trong pool 9 xu hướng)
-  const startIndex = (dayOfYear % (TREND_POOL.length / 3 | 0)) * 3;
+  // Offset để đảm bảo hôm nay (ngày 135) sẽ không ra nhóm đầu tiên
+  const offset = 1; 
+  const startIndex = ((dayOfYear + offset) % (TREND_POOL.length / 3 | 0)) * 3;
   const dailyTrends = TREND_POOL.slice(startIndex, startIndex + 3);
 
-  // Nếu không đủ 3 (do pool lẻ), lấy từ đầu
   if (dailyTrends.length < 3) {
     dailyTrends.push(...TREND_POOL.slice(0, 3 - dailyTrends.length));
   }
