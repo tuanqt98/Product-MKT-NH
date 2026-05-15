@@ -45,7 +45,7 @@ export default function SpecialPage() {
                 {[
                   { icon: Star, label: "Tự tin" },
                   { icon: Rocket, label: "Thành công" },
-                  { icon: Heart, label: "Nhiệt huyết" }
+                  { icon: Heart, label: "BabyBoo" }
                 ].map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2 px-5 py-3 bg-white/60 rounded-2xl shadow-sm border border-pink-100 text-pink-600 font-bold text-sm hover:scale-105 transition-all">
                     <item.icon size={16} />
