@@ -61,23 +61,29 @@ export default function FacebookInsightsPage() {
   // Xử lý dữ liệu nhân khẩu học (Fake data dựa trên cấu trúc thật nếu API chưa trả về đủ)
   // Xử lý dữ liệu nhân khẩu học thực tế từ API
   const demoData = React.useMemo(() => {
-    if (!data?.demographics) return [
+    const defaultData = [
       { name: '18-24', value: 0 },
       { name: '25-34', value: 0 },
       { name: '35-44', value: 0 },
       { name: '45-54', value: 0 },
       { name: '55+', value: 0 },
     ];
+    
+    if (!data?.demographics || Object.keys(data.demographics).length === 0) return defaultData;
 
-    const ranges = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
-    return ranges.map(range => {
-      const male = data.demographics[`M.${range}`] || 0;
-      const female = data.demographics[`F.${range}`] || 0;
-      return {
-        name: range === '65+' ? '65+' : (range === '55-64' ? '55+' : range),
-        value: male + female
-      };
-    }).slice(0, 5); // Lấy 5 nhóm đầu để khớp layout
+    try {
+      const ranges = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
+      return ranges.map(range => {
+        const male = data.demographics[`M.${range}`] || 0;
+        const female = data.demographics[`F.${range}`] || 0;
+        return {
+          name: range === '65+' ? '65+' : (range === '55-64' ? '55+' : range),
+          value: male + female
+        };
+      }).slice(0, 5);
+    } catch (e) {
+      return defaultData;
+    }
   }, [data]);
 
   const locationColors = ['bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-slate-500'];
@@ -91,6 +97,7 @@ export default function FacebookInsightsPage() {
             <h2 className="text-3xl font-black tracking-tight">Facebook Insights 2.0</h2>
           </div>
           <p className="text-sm text-muted-foreground">Phân tích dữ liệu & Đối tượng khách hàng In Nhật Hàn</p>
+          {data?.error && <p className="text-[10px] text-red-400 mt-2 font-bold uppercase tracking-widest">⚠️ Lỗi kết nối: {data.error}</p>}
         </div>
         <div className="flex gap-3">
           <button className="glass px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-white/10 transition-all">
@@ -111,7 +118,7 @@ export default function FacebookInsightsPage() {
               <span className="text-[10px] font-bold bg-green-500/10 text-green-400 px-2 py-1 rounded-lg">{stat.change}</span>
             </div>
             <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">{stat.name}</p>
-            <h3 className="text-3xl font-black mt-1 tracking-tight">{stat.value.toLocaleString()}</h3>
+            <h3 className="text-3xl font-black mt-1 tracking-tight">{(stat.value || 0).toLocaleString()}</h3>
           </div>
         ))}
       </div>
@@ -181,7 +188,7 @@ export default function FacebookInsightsPage() {
             </ResponsiveContainer>
           </div>
           <p className="text-xs text-center text-muted-foreground mt-4">
-            {demoData[1].value > demoData[0].value ? 'Khách hàng mục tiêu chủ yếu từ 25-44 tuổi' : 'Đang cập nhật phân tích độ tuổi...'}
+            {(demoData[1]?.value || 0) > (demoData[0]?.value || 0) ? 'Khách hàng mục tiêu chủ yếu từ 25-44 tuổi' : 'Đang cập nhật phân tích đối tượng...'}
           </p>
         </div>
 

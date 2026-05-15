@@ -8,7 +8,7 @@ export async function GET() {
   const ACCESS_TOKEN = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
 
   if (!PAGE_ID || !ACCESS_TOKEN) {
-    return NextResponse.json({ error: 'Missing configuration' }, { status: 500 });
+    return NextResponse.json({ connected: false, error: 'Missing configuration' });
   }
 
   try {
@@ -18,7 +18,11 @@ export async function GET() {
     );
     const pageData = await pageResponse.json();
 
-    // 2. Lấy Insights (Reach, Engagement, Views, New Fans) - Lấy chuỗi 7 ngày cho biểu đồ
+    if (pageData.error) {
+      throw new Error(pageData.error.message || 'Facebook API Error');
+    }
+
+    // 2. Lấy Insights
     const metrics = [
       'page_views_total',
       'page_impressions_unique',
@@ -26,7 +30,6 @@ export async function GET() {
       'page_fan_adds_unique',
       'page_fans_gender_age',
       'page_fans_country',
-      'page_fans_online'
     ].join(',');
 
     const insightsResponse = await fetch(
@@ -42,11 +45,10 @@ export async function GET() {
     const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 
     if (insightsData.data) {
-      // Lấy Reach & Engagement 7 ngày gần nhất cho biểu đồ
       const reachItem = insightsData.data.find((i: any) => i.name === 'page_impressions_unique');
       const engagementItem = insightsData.data.find((i: any) => i.name === 'page_post_engagements');
 
-      if (reachItem && engagementItem) {
+      if (reachItem?.values && engagementItem?.values) {
         const reachValues = reachItem.values.slice(-7);
         const engagementValues = engagementItem.values.slice(-7);
         
@@ -54,15 +56,15 @@ export async function GET() {
           const date = new Date(v.end_time);
           return {
             name: days[date.getDay()],
-            reach: v.value || 0,
-            engagement: engagementValues[index]?.value || 0
+            reach: Number(v.value) || 0,
+            engagement: Number(engagementValues[index]?.value) || 0
           };
         });
       }
 
-      // Lấy các chỉ số tổng hợp (latest)
       insightsData.data.forEach((item: any) => {
-        const latestValue = item.values[item.values.length - 1]?.value || 0;
+        const values = item.values || [];
+        const latestValue = values.length > 0 ? (values[values.length - 1]?.value || 0) : 0;
         stats[item.name] = latestValue;
         
         if (item.name === 'page_fans_gender_age') demographics = latestValue;
@@ -70,27 +72,29 @@ export async function GET() {
       });
     }
 
-    // 4. Phân tích bài viết (Content Type Performance)
+    // 4. Phân tích bài viết
     const postsResponse = await fetch(
-      `https://graph.facebook.com/v20.0/${PAGE_ID}/posts?fields=message,created_time,type,insights.metric(post_impressions_unique,post_engagements)&limit=15&access_token=${ACCESS_TOKEN}`
+      `https://graph.facebook.com/v20.0/${PAGE_ID}/posts?fields=message,created_time,type,insights.metric(post_impressions_unique,post_engagements)&limit=10&access_token=${ACCESS_TOKEN}`
     );
     const postsData = await postsResponse.json();
     
     const recentPosts = (postsData.data || []).map((p: any) => ({
       id: p.id,
-      message: p.message || "(Không có nội dung)",
+      message: p.message || "(Nội dung hình ảnh/video)",
       created_time: p.created_time,
       type: p.type,
-      likes: p.insights?.data?.find((i: any) => i.name === 'post_engagements')?.values[0]?.value || 0,
-      comments: 0 // Graph API /posts endpoint limit, need separate call for full details but this is good enough for demo
+      reach: p.insights?.data?.find((i: any) => i.name === 'post_impressions_unique')?.values[0]?.value || 0,
+      engagement: p.insights?.data?.find((i: any) => i.name === 'post_engagements')?.values[0]?.value || 0,
     }));
+
+    const fanCount = Number(pageData.fan_count) || 1; // Tránh chia cho 0
 
     return NextResponse.json({
       connected: true,
       page: {
-        name: pageData.name,
-        fans: pageData.fan_count,
-        followers: pageData.followers_count,
+        name: pageData.name || "Fanpage Nhật Hàn",
+        fans: pageData.fan_count || 0,
+        followers: pageData.followers_count || 0,
         avatar: pageData.picture?.data?.url
       },
       stats: {
@@ -99,10 +103,10 @@ export async function GET() {
         views: stats.page_views_total || 0,
         newFans: stats.page_fan_adds_unique || 0
       },
-      demographics: demographics,
+      demographics,
       locations: Object.entries(countryData).slice(0, 4).map(([city, val]) => ({
         city: city === 'VN' ? 'Việt Nam' : city,
-        percent: Math.round(((val as number) / pageData.fan_count) * 100) || 0
+        percent: Math.round(((val as number) / fanCount) * 100) || 0
       })),
       chartData: chartData.length > 0 ? chartData : [
         { name: 'T2', reach: 0, engagement: 0 },
@@ -113,9 +117,10 @@ export async function GET() {
         { name: 'T7', reach: 0, engagement: 0 },
         { name: 'CN', reach: 0, engagement: 0 },
       ],
-      recentPosts
+      contentAnalysis: recentPosts
     });
   } catch (error: any) {
+    console.error("Facebook API Error:", error);
     return NextResponse.json({ connected: false, error: error.message });
   }
 }
