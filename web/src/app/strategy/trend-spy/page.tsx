@@ -23,7 +23,7 @@ export default function TrendSpyPage() {
 
   const fetchTrends = () => {
     setLoading(true);
-    fetch('/api/trends')
+    fetch('/api/trends', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         setTrends(data.trends);
