@@ -179,7 +179,19 @@ export default function FacebookInsightsPage() {
           <div className="absolute top-0 right-0 p-8">
             <TrendingUp className="text-primary/20" size={120} />
           </div>
-          <h3 className="text-xl font-bold mb-8">Xu hướng Tăng trưởng</h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            <h3 className="text-xl font-bold">Xu hướng Tăng trưởng</h3>
+            <div className="flex gap-6 text-[10px] font-black uppercase tracking-[0.15em]">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[#3b82f6] shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                <span className="text-blue-400/80">Lượt tiếp cận</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                <span className="text-emerald-400/80">Lượt tương tác</span>
+              </div>
+            </div>
+          </div>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
@@ -193,12 +205,6 @@ export default function FacebookInsightsPage() {
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'white', opacity: 0.4, fontSize: 12}} />
                 <YAxis hide />
                 <Tooltip contentStyle={{backgroundColor: '#000', border: 'none', borderRadius: '12px'}} />
-                <Legend 
-                  verticalAlign="top" 
-                  align="right" 
-                  iconType="circle"
-                  wrapperStyle={{ paddingBottom: '20px', fontSize: '12px', fontWeight: 'bold' }}
-                />
                 <Area name="Lượt tiếp cận" type="monotone" dataKey="reach" stroke="#3b82f6" strokeWidth={4} fill="url(#colorReach)" />
                 <Area name="Lượt tương tác" type="monotone" dataKey="engagement" stroke="#10b981" strokeWidth={4} fill="transparent" />
               </AreaChart>
