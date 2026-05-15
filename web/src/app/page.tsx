@@ -118,9 +118,9 @@ export default function Dashboard() {
                   Truy cập Thư viện
                   <ArrowRight size={18} />
                 </Link>
-                <button className="bg-white/10 backdrop-blur-md border border-white/20 px-8 py-4 rounded-2xl font-bold hover:bg-white/20 transition-colors text-sm">
+                <Link href="/docs" className="bg-white/10 backdrop-blur-md border border-white/20 px-8 py-4 rounded-2xl font-bold hover:bg-white/20 transition-colors text-sm flex items-center justify-center">
                   Hướng dẫn sử dụng
-                </button>
+                </Link>
               </div>
             </div>
           </div>

@@ -621,6 +621,26 @@
   color: oklch(0.32 0.030 330) !important;
 }
 
+/* --- Documentation Page (/docs) --- */
+.theme-pink header[class*="from-indigo-900/60"] {
+  background: linear-gradient(135deg, oklch(0.45 0.15 320) 0%, oklch(0.50 0.12 280) 100%) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+.theme-pink div[class*="glass"][class*="p-8"] {
+  background: white !important;
+  border-color: rgba(200, 100, 120, 0.2) !important;
+}
+.theme-pink span[class*="text-primary/20"] {
+  color: rgba(200, 100, 120, 0.15) !important;
+}
+.theme-pink section[class*="bg-gradient-to-br from-primary/10"] {
+  background: linear-gradient(135deg, rgba(255, 245, 248, 0.8) 0%, rgba(240, 240, 255, 0.6) 100%) !important;
+  border-color: rgba(200, 100, 120, 0.2) !important;
+}
+.theme-pink section[class*="bg-gradient-to-br"] h3 {
+  color: oklch(0.32 0.030 330) !important;
+}
+
 /* --- Generic white-on-white text fixes --- */
 /* Any p tag with white opacity text in pink mode */
 .theme-pink p[class*="white\/40"],
