@@ -25,6 +25,7 @@ const XAxis = dynamic(() => import('recharts').then(mod => mod.XAxis), { ssr: fa
 const YAxis = dynamic(() => import('recharts').then(mod => mod.YAxis), { ssr: false });
 const CartesianGrid = dynamic(() => import('recharts').then(mod => mod.CartesianGrid), { ssr: false });
 const Tooltip = dynamic(() => import('recharts').then(mod => mod.Tooltip), { ssr: false });
+const Legend = dynamic(() => import('recharts').then(mod => mod.Legend), { ssr: false });
 const ResponsiveContainer = dynamic(() => import('recharts').then(mod => mod.ResponsiveContainer), { ssr: false });
 
 export default function FacebookInsightsPage() {
@@ -192,8 +193,14 @@ export default function FacebookInsightsPage() {
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'white', opacity: 0.4, fontSize: 12}} />
                 <YAxis hide />
                 <Tooltip contentStyle={{backgroundColor: '#000', border: 'none', borderRadius: '12px'}} />
-                <Area type="monotone" dataKey="reach" stroke="#3b82f6" strokeWidth={4} fill="url(#colorReach)" />
-                <Area type="monotone" dataKey="engagement" stroke="#10b981" strokeWidth={4} fill="transparent" />
+                <Legend 
+                  verticalAlign="top" 
+                  align="right" 
+                  iconType="circle"
+                  wrapperStyle={{ paddingBottom: '20px', fontSize: '12px', fontWeight: 'bold' }}
+                />
+                <Area name="Lượt tiếp cận" type="monotone" dataKey="reach" stroke="#3b82f6" strokeWidth={4} fill="url(#colorReach)" />
+                <Area name="Lượt tương tác" type="monotone" dataKey="engagement" stroke="#10b981" strokeWidth={4} fill="transparent" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
