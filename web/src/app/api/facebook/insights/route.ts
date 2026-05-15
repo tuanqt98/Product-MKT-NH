@@ -7,19 +7,8 @@ export async function GET() {
   const PAGE_ID = process.env.FACEBOOK_PAGE_ID;
   const ACCESS_TOKEN = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
 
-  // Dữ liệu mẫu xịn để dự phòng
-  const fallbackData = {
-    connected: false,
-    page: { name: "Fanpage Nhật Hàn", fans: 0, followers: 0, avatar: null },
-    stats: { reach: 0, engagement: 0, views: 0, newFans: 0 },
-    demographics: {},
-    locations: [],
-    chartData: [],
-    contentAnalysis: []
-  };
-
   if (!PAGE_ID || !ACCESS_TOKEN) {
-    return NextResponse.json({ ...fallbackData, error: 'Thiếu cấu hình Token/Page ID' });
+    return NextResponse.json({ connected: false, error: 'Thiếu cấu hình Token/Page ID' });
   }
 
   try {
@@ -29,13 +18,10 @@ export async function GET() {
     );
     const pageData = await pageResponse.json();
 
-    if (pageData.error) {
-      console.error("FB Page Error:", pageData.error);
-      return NextResponse.json({ ...fallbackData, error: pageData.error.message });
-    }
+    // 2. Tính toán khoảng thời gian 28 ngày để khớp với Business Suite
+    const until = Math.floor(Date.now() / 1000);
+    const since = until - (28 * 24 * 60 * 60); // 28 ngày trước
 
-    // 2. Lấy Insights với khoảng thời gian rộng hơn (để khớp với Business Suite)
-    // Lấy dữ liệu 30 ngày gần nhất để tránh độ trễ 2 ngày của Facebook
     const metrics = [
       'page_views_total',
       'page_impressions_unique',
@@ -46,16 +32,10 @@ export async function GET() {
     ].join(',');
 
     const insightsResponse = await fetch(
-      `https://graph.facebook.com/v20.0/${PAGE_ID}/insights?metric=${metrics}&period=day&access_token=${ACCESS_TOKEN}`
+      `https://graph.facebook.com/v20.0/${PAGE_ID}/insights?metric=${metrics}&period=day&since=${since}&until=${until}&access_token=${ACCESS_TOKEN}`
     );
     const insightsData = await insightsResponse.json();
 
-    if (insightsData.error) {
-      console.error("FB Insights Error:", insightsData.error);
-      return NextResponse.json({ ...fallbackData, error: "Token thiếu quyền read_insights hoặc đã hết hạn" });
-    }
-
-    // 3. Xử lý dữ liệu
     const stats: any = { reach: 0, engagement: 0, views: 0, newFans: 0 };
     let demographics: any = {};
     let countryData: any = {};
@@ -65,39 +45,34 @@ export async function GET() {
     if (insightsData.data) {
       insightsData.data.forEach((item: any) => {
         const values = item.values || [];
-        // Lấy tổng giá trị trong mảng trả về (thường là 2-3 ngày gần nhất có dữ liệu)
-        // Thay vì chỉ lấy ngày cuối cùng (có thể là 0 do chưa cập nhật), ta lấy giá trị có số lớn nhất hoặc giá trị mới nhất có dữ liệu > 0
-        const validValues = values.filter((v: any) => v.value > 0);
-        const latestValidValue = validValues.length > 0 ? validValues[validValues.length - 1].value : 0;
-        
-        // Tính tổng 7 ngày cho các chỉ số chính để hiển thị số "khủng" hơn giống Business Suite
-        const last7DaysSum = values.slice(-7).reduce((acc: number, curr: any) => acc + (Number(curr.value) || 0), 0);
+        // Cộng dồn tất cả giá trị trong 28 ngày
+        const totalValue = values.reduce((acc: number, curr: any) => acc + (Number(curr.value) || 0), 0);
+        const latestValue = values.length > 0 ? values[values.length - 1].value : 0;
 
         if (item.name === 'page_impressions_unique') {
-          stats.reach = last7DaysSum || latestValidValue;
-          // Tạo chart data từ 7 ngày này
+          stats.reach = totalValue;
+          // Chart data lấy 7 ngày gần nhất cho biểu đồ tuần
           chartData = values.slice(-7).map((v: any) => ({
             name: days[new Date(v.end_time).getDay()],
             reach: Number(v.value) || 0,
-            engagement: 0 // Sẽ điền sau
+            engagement: 0
           }));
         }
         if (item.name === 'page_post_engagements') {
-          stats.engagement = last7DaysSum || latestValidValue;
-          // Cập nhật engagement vào chartData
+          stats.engagement = totalValue;
           values.slice(-7).forEach((v: any, idx: number) => {
             if (chartData[idx]) chartData[idx].engagement = Number(v.value) || 0;
           });
         }
-        if (item.name === 'page_views_total') stats.views = last7DaysSum || latestValidValue;
-        if (item.name === 'page_fan_adds_unique') stats.newFans = last7DaysSum || latestValidValue;
+        if (item.name === 'page_views_total') stats.views = totalValue;
+        if (item.name === 'page_fan_adds_unique') stats.newFans = totalValue;
         
-        if (item.name === 'page_fans_gender_age') demographics = latestValidValue || {};
-        if (item.name === 'page_fans_country') countryData = latestValidValue || {};
+        if (item.name === 'page_fans_gender_age') demographics = latestValue || {};
+        if (item.name === 'page_fans_country') countryData = latestValue || {};
       });
     }
 
-    // 4. Lấy bài viết mới nhất
+    // 3. Lấy bài viết
     const postsResponse = await fetch(
       `https://graph.facebook.com/v20.0/${PAGE_ID}/posts?fields=message,created_time,type,insights.metric(post_impressions_unique,post_engagements)&limit=5&access_token=${ACCESS_TOKEN}`
     );
@@ -130,7 +105,6 @@ export async function GET() {
     });
 
   } catch (error: any) {
-    console.error("Final FB Error:", error);
-    return NextResponse.json({ ...fallbackData, error: error.message });
+    return NextResponse.json({ connected: false, error: error.message });
   }
 }
