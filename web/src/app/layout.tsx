@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import DevServiceWorkerReset from "@/components/DevServiceWorkerReset";
 import { cn } from "@/lib/utils";
 
 const inter = Inter({ subsets: ["latin", "vietnamese"] });
@@ -34,6 +35,7 @@ export default function RootLayout({
     <html lang="vi" className="dark" suppressHydrationWarning>
       <body className={cn(inter.className, "mesh-gradient min-h-screen")}>
         <ThemeProvider>
+          <DevServiceWorkerReset />
           <div className="flex min-h-screen">
             <Sidebar />
             <main className="flex-1 min-h-screen relative w-full overflow-x-hidden">

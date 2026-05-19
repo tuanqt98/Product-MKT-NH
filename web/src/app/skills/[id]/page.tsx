@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
@@ -28,6 +29,7 @@ interface ChatSession {
 
 export default function SkillExecutionPage() {
   const { id } = useParams();
+  const skillId = String(id || '');
   const router = useRouter();
   const [skill, setSkill] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -51,25 +53,54 @@ export default function SkillExecutionPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollRefB = useRef<HTMLDivElement>(null);
 
-  // Khởi tạo sessions
+  // Khởi tạo sessions từ local database, fallback/migrate từ localStorage cũ nếu có.
   useEffect(() => {
-    if (id) {
-      const savedSessions = localStorage.getItem(`nh-sessions-${id}`);
-      if (savedSessions) {
-        const parsed = JSON.parse(savedSessions);
-        setSessions(parsed);
-        if (parsed.length > 0) setSessionId(parsed[0].id);
-        else createNewSession();
-      } else {
+    if (!skillId) return;
+
+    const loadSessions = async () => {
+      try {
+        const res = await fetch(`/api/chat-sessions?skillId=${skillId}`, { cache: 'no-store' });
+        const data = await res.json();
+        if (data.sessions?.length > 0) {
+          setSessions(data.sessions);
+          setSessionId(data.sessions[0].id);
+          return;
+        }
+
+        const savedSessions = localStorage.getItem(`nh-sessions-${skillId}`);
+        if (savedSessions) {
+          const parsed: ChatSession[] = JSON.parse(savedSessions);
+          for (const session of parsed) {
+            const messagesA = JSON.parse(localStorage.getItem(`nh-chat-${skillId}-${session.id}-A`) || '[]');
+            const messagesB = JSON.parse(localStorage.getItem(`nh-chat-${skillId}-${session.id}-B`) || '[]');
+            await fetch('/api/chat-sessions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...session, skillId, messagesA, messagesB }),
+            });
+          }
+          const migrated = await fetch(`/api/chat-sessions?skillId=${skillId}`, { cache: 'no-store' }).then(r => r.json());
+          if (migrated.sessions?.length > 0) {
+            setSessions(migrated.sessions);
+            setSessionId(migrated.sessions[0].id);
+            return;
+          }
+        }
+
+        createNewSession();
+      } catch (error) {
+        console.error('Failed to load chat sessions:', error);
         createNewSession();
       }
-    }
-  }, [id]);
+    };
+
+    loadSessions();
+  }, [skillId]);
 
   // Nhận diện xu hướng từ Radar
   useEffect(() => {
     const pendingTrend = localStorage.getItem('pending_trend');
-    if (pendingTrend && id === '04-script-video') {
+    if (pendingTrend && skillId === '04-script-video') {
       const trendData = JSON.parse(pendingTrend);
       const welcomeMsg: Message = {
         id: uuidv4(),
@@ -79,45 +110,68 @@ export default function SkillExecutionPage() {
       setMessages([welcomeMsg]);
       localStorage.removeItem('pending_trend');
     }
-  }, [id]);
+  }, [skillId]);
 
-  // Load tin nhắn
+  // Load tin nhắn từ local database
   useEffect(() => {
-    if (id && sessionId) {
-      const savedA = localStorage.getItem(`nh-chat-${id}-${sessionId}-A`);
-      const savedB = localStorage.getItem(`nh-chat-${id}-${sessionId}-B`);
-      if (savedA && messages.length === 0) setMessages(JSON.parse(savedA));
-      if (savedB && messagesB.length === 0) setMessagesB(JSON.parse(savedB));
-    }
-  }, [id, sessionId]);
+    if (!skillId || !sessionId) return;
 
-  // Lưu tin nhắn
+    fetch(`/api/chat-sessions?sessionId=${sessionId}`, { cache: 'no-store' })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (!data) return;
+        setMessages(data.messagesA || []);
+        setMessagesB(data.messagesB || []);
+      })
+      .catch((error) => {
+        console.error('Failed to load chat messages:', error);
+        const savedA = localStorage.getItem(`nh-chat-${skillId}-${sessionId}-A`);
+        const savedB = localStorage.getItem(`nh-chat-${skillId}-${sessionId}-B`);
+        if (savedA) setMessages(JSON.parse(savedA));
+        if (savedB) setMessagesB(JSON.parse(savedB));
+      });
+  }, [skillId, sessionId]);
+
+  // Lưu tin nhắn vào local database và giữ localStorage làm fallback.
   useEffect(() => {
-    if (id && sessionId && (messages.length > 0 || messagesB.length > 0)) {
-      localStorage.setItem(`nh-chat-${id}-${sessionId}-A`, JSON.stringify(messages));
-      localStorage.setItem(`nh-chat-${id}-${sessionId}-B`, JSON.stringify(messagesB));
+    if (skillId && sessionId && (messages.length > 0 || messagesB.length > 0)) {
+      localStorage.setItem(`nh-chat-${skillId}-${sessionId}-A`, JSON.stringify(messages));
+      localStorage.setItem(`nh-chat-${skillId}-${sessionId}-B`, JSON.stringify(messagesB));
       
       const lastMsg = messages[messages.length - 1]?.content || "";
       if (lastMsg && !lastMsg.includes('Chào Sếp!')) {
         setSessions(prev => {
           const updated = prev.map(s => s.id === sessionId ? { ...s, lastMessage: lastMsg } : s);
-          localStorage.setItem(`nh-sessions-${id}`, JSON.stringify(updated));
+          localStorage.setItem(`nh-sessions-${skillId}`, JSON.stringify(updated));
           return updated;
         });
       }
+      fetch('/api/chat-sessions', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: sessionId, messagesA: messages, messagesB, lastMessage: lastMsg }),
+      }).catch((error) => console.error('Failed to save chat session:', error));
     }
-  }, [messages, messagesB, id, sessionId]);
+  }, [messages, messagesB, skillId, sessionId]);
 
-  const createNewSession = () => {
+  const createNewSession = async () => {
     const newId = uuidv4();
     const newSession = { id: newId, title: `Hội thoại mới ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`, createdAt: Date.now() };
-    const updated = [newSession, ...sessions];
-    setSessions(updated);
-    setSessionId(newId);
-    setMessages([]);
-    setMessagesB([]);
-    localStorage.setItem(`nh-sessions-${id}`, JSON.stringify(updated));
-    setShowSessions(false);
+    try {
+      const saved = await fetch('/api/chat-sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...newSession, skillId, messagesA: [], messagesB: [] }),
+      }).then(res => res.json());
+      const updated = [{ id: saved.id, title: saved.title, createdAt: saved.createdAt, lastMessage: saved.lastMessage }, ...sessions];
+      setSessions(updated);
+      setSessionId(saved.id);
+      setMessages([]);
+      setMessagesB([]);
+      localStorage.setItem(`nh-sessions-${skillId}`, JSON.stringify(updated));
+    } finally {
+      setShowSessions(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -139,12 +193,12 @@ export default function SkillExecutionPage() {
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: [...history, userMessage], skillId: id, variation: variationName, image: currentImage ? { base64: currentImage.base64, mimeType: currentImage.mimeType } : undefined })
+          body: JSON.stringify({ messages: [...history, userMessage], skillId, variation: variationName, image: currentImage ? { base64: currentImage.base64, mimeType: currentImage.mimeType } : undefined })
         });
         if (!response.ok) throw new Error("Lỗi kết nối máy chủ");
         const reader = response.body?.getReader();
         const decoder = new TextDecoder();
-        let assistantMessage: Message = { id: uuidv4(), role: 'assistant', content: "", variation: variationName };
+        const assistantMessage: Message = { id: uuidv4(), role: 'assistant', content: "", variation: variationName };
         if (variationName === 'A') setMessages(prev => [...prev, assistantMessage]);
         else setMessagesB(prev => [...prev, assistantMessage]);
 
@@ -209,9 +263,29 @@ export default function SkillExecutionPage() {
     }
   }, [messages, skill]);
 
+  const saveOutput = async (message: Message) => {
+    if (message.role !== 'assistant' || !message.content.trim()) return;
+    setIsPublishing(message.id);
+    try {
+      await fetch('/api/saved-outputs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `${skill?.name || skillId} - ${new Date().toLocaleString('vi-VN')}`,
+          skillId,
+          sessionId,
+          content: message.content,
+          tags: [skillId],
+        }),
+      });
+    } finally {
+      setIsPublishing(null);
+    }
+  };
+
   useEffect(() => {
-    fetch(`/api/skills/${id}`).then(res => res.json()).then(data => { setSkill(data); setLoading(false); });
-  }, [id]);
+    fetch(`/api/skills/${skillId}`).then(res => res.json()).then(data => { setSkill(data); setLoading(false); });
+  }, [skillId]);
 
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
 
@@ -262,11 +336,11 @@ export default function SkillExecutionPage() {
 
         <main className="flex-1 flex overflow-hidden relative">
           <div className={cn("flex-1 flex flex-col overflow-y-auto p-6 space-y-6 custom-scrollbar", isCompareMode ? "border-r border-white/10" : "")} ref={scrollRef}>
-            <ChatMessageList messages={messages} skill={skill} setInput={setInput} isLoading={isLoading} />
+            <ChatMessageList messages={messages} skill={skill} setInput={setInput} isLoading={isLoading} onSaveOutput={saveOutput} savingId={isPublishing} />
           </div>
           {isCompareMode && (
             <div className="flex-1 flex flex-col bg-white/[0.02] overflow-y-auto p-6 space-y-6 custom-scrollbar" ref={scrollRefB}>
-              <ChatMessageList messages={messagesB} skill={skill} setInput={setInput} isLoading={isLoading} />
+              <ChatMessageList messages={messagesB} skill={skill} setInput={setInput} isLoading={isLoading} onSaveOutput={saveOutput} savingId={isPublishing} />
             </div>
           )}
         </main>
@@ -282,7 +356,7 @@ export default function SkillExecutionPage() {
   );
 }
 
-function ChatMessageList({ messages, skill, setInput, isLoading }: any) {
+function ChatMessageList({ messages, skill, setInput, isLoading, onSaveOutput, savingId }: any) {
   if (messages.length === 0 && !isLoading) return (
     <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
       <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary animate-pulse"><Sparkles size={32} /></div>
@@ -306,6 +380,18 @@ function ChatMessageList({ messages, skill, setInput, isLoading }: any) {
           </div>
           <div className={cn("p-4 rounded-3xl text-sm max-w-[85%] shadow-sm", m.role === 'user' ? "bg-indigo-600 text-white" : "bg-white/5 border border-white/10")}>
             {m.role === 'assistant' ? <MarkdownRenderer content={m.content} /> : <div className="whitespace-pre-wrap">{m.content}</div>}
+            {m.role === 'assistant' && m.content.trim() && (
+              <div className="mt-4 flex justify-end border-t border-white/5 pt-3">
+                <button
+                  onClick={() => onSaveOutput(m)}
+                  disabled={savingId === m.id}
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary/10 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-primary hover:bg-primary/20 disabled:opacity-50"
+                >
+                  <Share2 size={12} />
+                  {savingId === m.id ? 'Đang lưu...' : 'Lưu tài sản'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       ))}

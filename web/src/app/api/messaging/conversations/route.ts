@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import {
   getAllConversations,
@@ -7,7 +8,10 @@ import {
   pauseAIForConversation,
   addMessage,
   getOrCreateConversation,
+  replaceConversationMessages,
+  upsertConversationPatch,
 } from '@/lib/conversation-state';
+import { generateTextWithGeminiFallback } from '@/lib/gemini-models';
 
 const PAGE_ACCESS_TOKEN = process.env.FACEBOOK_PAGE_ACCESS_TOKEN || '';
 const PAGE_ID = process.env.FACEBOOK_PAGE_ID || '1085751274627579';
@@ -38,7 +42,7 @@ export async function GET(req: NextRequest) {
       const customerName = participant?.name || `Khách #${id.slice(-4)}`;
 
       // Đồng bộ vào state cục bộ
-      const conv = getOrCreateConversation(id, customerName);
+      getOrCreateConversation(id, customerName);
       
       // Map tin nhắn từ FB sang format của App
       const formattedMessages = (fbConvData.messages?.data || []).reverse().map((m: any) => ({
@@ -50,10 +54,10 @@ export async function GET(req: NextRequest) {
         status: 'sent'
       }));
 
-      conv.messages = formattedMessages;
+      replaceConversationMessages(id, formattedMessages);
       markAsRead(id);
       
-      return NextResponse.json(conv);
+      return NextResponse.json(getConversation(id));
     }
 
     // 2. Lấy danh sách tất cả hội thoại từ Facebook
@@ -70,22 +74,26 @@ export async function GET(req: NextRequest) {
       if (!participant) continue;
 
       // SỬ DỤNG CONVERSATION ID (fbConv.id) LÀM KHÓA CHÍNH
-      const conv = getOrCreateConversation(fbConv.id, participant.name);
-      conv.lastMessageAt = fbConv.updated_time;
+      getOrCreateConversation(fbConv.id, participant.name);
       
       // Lưu thêm PSID của khách để gửi tin nhắn sau này
-      (conv as any).customerPSID = participant.id;
+      upsertConversationPatch(fbConv.id, {
+        customerName: participant.name,
+        customerPSID: participant.id,
+        lastMessageAt: fbConv.updated_time,
+      });
       
       const lastMsg = fbConv.messages?.data?.[0];
-      if (lastMsg && conv.messages.length === 0) {
-        conv.messages = [{
+      const currentConv = getConversation(fbConv.id);
+      if (lastMsg && currentConv && currentConv.messages.length === 0) {
+        replaceConversationMessages(fbConv.id, [{
           id: lastMsg.id,
           senderId: lastMsg.from.id,
           text: lastMsg.message,
           timestamp: lastMsg.created_time,
           source: lastMsg.from.id === PAGE_ID ? 'ai' : 'customer',
           status: 'sent'
-        }];
+        }]);
       }
     }
 
@@ -160,10 +168,73 @@ export async function POST(req: NextRequest) {
         if (conversationId) pauseAIForConversation(conversationId, pauseMinutes || 60);
         return NextResponse.json({ success: true });
 
+      case 'analyze_conversation': {
+        if (!conversationId) return NextResponse.json({ error: 'Missing conversationId' }, { status: 400 });
+        const conv = getConversation(conversationId);
+        if (!conv) return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+        const analysis = await analyzeConversation(conv.messages.map(m => `${m.source}: ${m.text}`).join('\n'));
+        const updated = upsertConversationPatch(conversationId, {
+          summary: analysis.summary,
+          tags: analysis.tags,
+          leadScore: analysis.leadScore,
+          nextAction: analysis.nextAction,
+          lastAnalyzedAt: new Date().toISOString(),
+        });
+        return NextResponse.json({ success: true, conversation: updated });
+      }
+
       default:
         return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
     }
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+async function analyzeConversation(transcript: string): Promise<{
+  summary: string;
+  tags: string[];
+  leadScore: number;
+  nextAction: string;
+}> {
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim();
+  if (!apiKey) {
+    return {
+      summary: transcript.slice(0, 280) || 'Chưa có đủ dữ liệu hội thoại.',
+      tags: ['cần xem lại'],
+      leadScore: 50,
+      nextAction: 'Nhân sự kiểm tra hội thoại và phản hồi thủ công.',
+    };
+  }
+
+  try {
+    const result = await generateTextWithGeminiFallback(apiKey, `
+Bạn là trợ lý CRM cho công ty in ấn Nhật Hàn. Hãy phân tích hội thoại sau và trả về JSON hợp lệ, không markdown.
+Schema:
+{
+  "summary": "tóm tắt ngắn nhu cầu khách",
+  "tags": ["tag 1", "tag 2"],
+  "leadScore": 0-100,
+  "nextAction": "việc nên làm tiếp theo"
+}
+
+Hội thoại:
+${transcript}
+`);
+    const raw = result.text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(raw);
+    return {
+      summary: String(parsed.summary || 'Đã phân tích hội thoại.'),
+      tags: Array.isArray(parsed.tags) ? parsed.tags.map(String).slice(0, 6) : [],
+      leadScore: Math.max(0, Math.min(100, Number(parsed.leadScore) || 50)),
+      nextAction: String(parsed.nextAction || 'Theo dõi và phản hồi khách hàng.'),
+    };
+  } catch {
+    return {
+      summary: 'Không thể phân tích tự động, cần nhân sự xem lại hội thoại.',
+      tags: ['cần xem lại'],
+      leadScore: 50,
+      nextAction: 'Kiểm tra nội dung hội thoại và cập nhật thủ công.',
+    };
   }
 }

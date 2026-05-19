@@ -9,24 +9,33 @@ export async function GET() {
       : path.join(process.cwd(), '../skills');
     const skillDirs = fs.readdirSync(skillsPath, { withFileTypes: true })
       .filter(dirent => dirent.isDirectory() && dirent.name.match(/^\d{2}-/))
-      .map(dirent => dirent.name);
+      .map(dirent => dirent.name)
+      .sort();
 
     const skills = skillDirs.map(dir => {
       const skillFile = path.join(skillsPath, dir, 'SKILL.md');
       let name = dir.replace(/^\d{2}-/, '').replace(/-/g, ' ');
+      let description = '';
+      let category = 'strategy';
       
       try {
         const content = fs.readFileSync(skillFile, 'utf8');
-        // Simple regex to extract title from YAML or H1
         const titleMatch = content.match(/name:\s*(.*)/) || content.match(/^#\s*(.*)/m);
+        const descriptionMatch = content.match(/description:\s*(.*)/);
+        const categoryMatch = content.match(/category:\s*(.*)/);
+
         if (titleMatch) name = titleMatch[1].trim();
-      } catch (e) {
+        if (descriptionMatch) description = descriptionMatch[1].trim().replace(/^"|"$/g, '');
+        if (categoryMatch) category = categoryMatch[1].trim();
+      } catch {
         // Fallback to directory name
       }
 
       return {
         id: dir,
         name: name,
+        description,
+        category,
         path: dir
       };
     });

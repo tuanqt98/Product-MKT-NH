@@ -29,3 +29,6 @@ brief-*.html
 .env.local
 .vercel
 .env*.local
+
+# Local runtime data for the web app
+.runtime/

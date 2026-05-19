@@ -40,3 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 scratch/
+
+# local runtime database
+/data/app-db.json

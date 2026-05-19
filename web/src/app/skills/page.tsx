@@ -3,14 +3,22 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { 
-  Sparkles, ArrowRight, Search, LayoutGrid, Filter, 
+  Sparkles, Search, LayoutGrid,
   Target, PenTool, BarChart3, Settings2, UserCircle2, 
-  ChevronRight, Star, Zap, ShieldCheck, Globe
+  ChevronRight, Star, Zap, ShieldCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+interface SkillSummary {
+  id: string;
+  name: string;
+  description?: string;
+  category?: string;
+  path?: string;
+}
+
 // Mapping cho tên kỹ năng và giới thiệu tiếng Việt
-const SKILL_DETAILS: Record<string, { name: string, intro: string, icon?: any, color?: string }> = {
+const SKILL_DETAILS: Record<string, { name: string, intro: string, color?: string }> = {
   "00-ke-hoach-mkt": { name: "Lập Kế hoạch Marketing Tổng thể", intro: "Xây dựng chiến lược Fullstack từ A-Z cho doanh nghiệp.", color: "from-blue-500 to-indigo-600" },
   "01-lich-noi-dung": { name: "Lập Lịch Nội dung Tháng", intro: "Quản lý kế hoạch đăng bài đa kênh khoa học và nhất quán.", color: "from-pink-500 to-rose-600" },
   "02-brief-chien-dich": { name: "Brief Chiến dịch Sáng tạo", intro: "Tạo bản yêu cầu chi tiết cho các chiến dịch quảng cáo bùng nổ.", color: "from-orange-500 to-amber-600" },
@@ -40,10 +48,11 @@ const SKILL_DETAILS: Record<string, { name: string, intro: string, icon?: any, c
   "26-thought-leadership-content": { name: "Nội dung Chuyên gia dẫn dắt", intro: "Viết bài khẳng định vị thế và uy tín trong ngành.", color: "from-amber-600 to-yellow-700" },
   "27-personal-brand-monetize": { name: "Khai thác Doanh thu từ Thương hiệu", intro: "Các phương án chuyển đổi tầm ảnh hưởng thành lợi nhuận.", color: "from-green-600 to-teal-700" },
   "28-community-building": { name: "Xây dựng Cộng đồng trung thành", intro: "Phát triển nhóm khách hàng đồng hành lâu dài cùng thương hiệu.", color: "from-sky-600 to-blue-700" },
+  "29-xuat-khau-b2b": { name: "Marketing Xuất khẩu B2B", intro: "Lập hồ sơ export, email chào hàng quốc tế, kế hoạch hội chợ và phân tích giá cạnh tranh.", color: "from-lime-500 to-emerald-600" },
 };
 
 export default function AllSkillsPage() {
-  const [skills, setSkills] = useState<any[]>([]);
+  const [skills, setSkills] = useState<SkillSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
@@ -100,7 +109,7 @@ export default function AllSkillsPage() {
             <h2 className="text-2xl md:text-4xl lg:text-5xl font-black tracking-tight mt-2 md:mt-0">Thư viện Kỹ năng AI</h2>
           </div>
           <p className="text-sm md:text-lg text-white/60 leading-relaxed max-w-lg">
-            Hệ thống 29 kỹ năng chuyên gia được huấn luyện riêng biệt cho đội ngũ Marketing Nhật Hàn. 
+            Hệ thống 30 kỹ năng chuyên gia được huấn luyện riêng biệt cho đội ngũ Marketing Nhật Hàn.
           </p>
         </div>
       </header>

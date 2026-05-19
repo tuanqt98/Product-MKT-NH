@@ -108,6 +108,11 @@ const SMART_SUGGESTIONS: Record<string, string[]> = {
     "Audit toàn bộ chiến dịch Facebook Ads đang chạy",
     "Đánh giá hiệu quả chi tiêu quảng cáo Google Ads tháng này",
     "Kiểm tra và đề xuất tối ưu quảng cáo TikTok Ads"
+  ],
+  "29-xuat-khau-b2b": [
+    "Tạo company profile tiếng Anh cho sản phẩm xuất khẩu của Nhật Hàn",
+    "Viết email chào hàng quốc tế cho buyer B2B ngành bao bì",
+    "Lập kế hoạch tham dự hội chợ và follow-up buyer nước ngoài"
   ]
 };
 

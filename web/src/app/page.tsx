@@ -12,10 +12,16 @@ import {
   LayoutGrid,
   ArrowRight,
   MessageSquare,
-  Share2,
   ThumbsUp
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+
+interface FacebookPost {
+  id: string;
+  message?: string;
+  likes: number;
+  comments: number;
+  created_time: string;
+}
 
 export default function Dashboard() {
   const [stats, setStats] = useState([
@@ -25,7 +31,7 @@ export default function Dashboard() {
     { name: 'Followers mới', value: '0', icon: Target, color: 'text-purple-400' },
   ]);
 
-  const [history, setHistory] = useState<any[]>([]);
+  const [history, setHistory] = useState<FacebookPost[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -116,7 +122,7 @@ export default function Dashboard() {
                 </div>
                 <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] opacity-80">AI Marketing Intelligence</span>
               </div>
-              <h3 className="text-3xl md:text-4xl lg:text-5xl font-black mb-4 leading-tight tracking-tighter">Thư viện 29 Kỹ năng<br />Siêu trí tuệ Marketing</h3>
+              <h3 className="text-3xl md:text-4xl lg:text-5xl font-black mb-4 leading-tight tracking-tighter">Thư viện 30 Kỹ năng<br />Siêu trí tuệ Marketing</h3>
               <p className="text-white/70 mb-8 md:mb-12 max-w-md text-sm md:text-lg leading-relaxed font-medium">
                 Đã sẵn sàng để xây dựng chiến lược, sản xuất nội dung và tối ưu hiệu suất cho Nhật Hàn.
               </p>
@@ -167,7 +173,7 @@ export default function Dashboard() {
               {loading ? (
                 [1, 2, 3].map(i => <div key={i} className="h-16 w-full bg-white/5 animate-pulse rounded-2xl" />)
               ) : history.length > 0 ? (
-                history.slice(0, 5).map((post: any) => (
+                history.slice(0, 5).map((post) => (
                   <div key={post.id} className="group flex flex-col gap-2 p-4 hover:bg-white/5 rounded-[1.5rem] transition-all cursor-pointer border border-transparent hover:border-white/5">
                     <p className="text-[13px] font-medium line-clamp-2 leading-relaxed text-white/80 group-hover:text-white transition-colors">
                       {post.message}
@@ -199,7 +205,7 @@ export default function Dashboard() {
               <Target size={120} />
             </div>
             <h3 className="text-lg font-black mb-2 relative z-10">Product Context</h3>
-            <p className="text-xs text-white/50 mb-6 leading-relaxed relative z-10">Dịch vụ In ấn Nhật Hàn hiện đã sẵn sàng cho 29 kỹ năng AI.</p>
+            <p className="text-xs text-white/50 mb-6 leading-relaxed relative z-10">Dịch vụ In ấn Nhật Hàn hiện đã sẵn sàng cho 30 kỹ năng AI.</p>
             <button className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-[11px] font-black uppercase tracking-widest transition-colors border border-white/5 relative z-10">
               Cập nhật Context
             </button>

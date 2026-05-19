@@ -6,12 +6,10 @@ import {
   Sparkles, 
   Zap, 
   MessageSquare, 
-  BarChart3, 
   ShieldCheck, 
   ArrowLeft,
   LayoutGrid,
   CheckCircle2,
-  HelpCircle,
   Lightbulb
 } from 'lucide-react';
 import Link from 'next/link';
@@ -27,10 +25,10 @@ const sections = [
   },
   {
     id: 'skills',
-    title: 'Thư viện 29+ Kỹ năng AI',
+    title: 'Thư viện 30 Kỹ năng AI',
     icon: LayoutGrid,
     color: 'text-pink-400',
-    content: 'Kho kỹ năng chuyên gia: Lập kế hoạch MKT, Viết kịch bản Viral, Copywriting quảng cáo, Nghiên cứu đối thủ, Định vị thương hiệu cá nhân.'
+    content: 'Kho kỹ năng chuyên gia: Lập kế hoạch MKT, Viết kịch bản Viral, Copywriting quảng cáo, Nghiên cứu đối thủ, Định vị thương hiệu cá nhân, Marketing xuất khẩu B2B.'
   },
   {
     id: 'messenger',
@@ -118,7 +116,7 @@ export default function DocsPage() {
                 <h4 className="font-bold">Chế độ Trợ lý (Co-pilot)</h4>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Khuyên dùng trong 2 tuần đầu. AI sẽ soạn nháp câu trả lời, bạn chỉ cần bấm "Duyệt & Gửi" trong Hộp thư.
+                Khuyên dùng trong 2 tuần đầu. AI sẽ soạn nháp câu trả lời, bạn chỉ cần bấm Duyệt và Gửi trong Hộp thư.
               </p>
             </div>
             <div className="p-6 bg-white/5 rounded-[2rem] border border-white/5">

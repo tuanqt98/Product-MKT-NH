@@ -9,13 +9,11 @@ import {
   RefreshCw,
   Check,
   CheckCheck,
-  Clock,
   Sparkles,
   PauseCircle,
   PlayCircle,
   ChevronLeft,
   Inbox,
-  Smile,
   AlertCircle,
   Zap,
 } from 'lucide-react';
@@ -42,7 +40,15 @@ interface Conversation {
   lastMessageAt: string;
   unreadCount: number;
   createdAt: string;
+  summary?: string;
+  tags?: string[];
+  leadScore?: number;
+  nextAction?: string;
+  lastAnalyzedAt?: string;
 }
+
+const CONVERSATION_REFRESH_MS = 30000;
+const AUTO_REPLY_POLL_MS = 60000;
 
 export default function MessagingInbox() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -51,6 +57,7 @@ export default function MessagingInbox() {
   const [replyText, setReplyText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   const [mobileShowChat, setMobileShowChat] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -79,23 +86,29 @@ export default function MessagingInbox() {
   };
 
   useEffect(() => {
-    fetchConversations();
-    // Auto-refresh danh sách mỗi 10 giây
-    const interval = setInterval(fetchConversations, 10000);
+    const firstLoad = window.setTimeout(() => {
+      void fetchConversations();
+    }, 0);
+    // Auto-refresh danh sách định kỳ, chỉ khi tab đang mở.
+    const interval = setInterval(() => {
+      if (!document.hidden) void fetchConversations();
+    }, CONVERSATION_REFRESH_MS);
     
-    // TRÌNH KÍCH HOẠT SIÊU TỐC: Gọi polling trả lời tin nhắn mỗi 10 giây
+    // Poll auto-reply nhẹ hơn để tránh gây tải và hot reload liên tục ở môi trường local.
     const pollInterval = setInterval(async () => {
+      if (document.hidden) return;
       try {
         await fetch('/api/facebook/auto-reply');
         // Sau khi AI trả lời xong, làm mới danh sách để thấy tin nhắn mới
-        fetchConversations();
-        if (selectedId) fetchConversation(selectedId);
+        void fetchConversations();
+        if (selectedId) void fetchConversation(selectedId);
       } catch (err) {
         console.error('Fast polling error:', err);
       }
-    }, 10000);
+    }, AUTO_REPLY_POLL_MS);
 
     return () => {
+      clearTimeout(firstLoad);
       clearInterval(interval);
       clearInterval(pollInterval);
     };
@@ -103,7 +116,10 @@ export default function MessagingInbox() {
 
   useEffect(() => {
     if (selectedId) {
-      fetchConversation(selectedId);
+      const timer = window.setTimeout(() => {
+        void fetchConversation(selectedId);
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
   }, [selectedId]);
 
@@ -171,6 +187,25 @@ export default function MessagingInbox() {
       if (selectedId === convId) await fetchConversation(convId);
     } catch (err) {
       console.error('Failed to toggle AI:', err);
+    }
+  };
+
+  const handleAnalyzeConversation = async () => {
+    if (!selectedId) return;
+    setAnalyzing(true);
+    try {
+      const res = await fetch('/api/messaging/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'analyze_conversation', conversationId: selectedId }),
+      });
+      const data = await res.json();
+      if (data.conversation) setSelectedConv(data.conversation);
+      await fetchConversations();
+    } catch (err) {
+      console.error('Failed to analyze conversation:', err);
+    } finally {
+      setAnalyzing(false);
     }
   };
 
@@ -301,6 +336,18 @@ export default function MessagingInbox() {
                         <badge.icon size={10} />
                         {badge.text}
                       </div>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {typeof conv.leadScore === 'number' && (
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-black text-primary">
+                            Lead {conv.leadScore}
+                          </span>
+                        )}
+                        {(conv.tags || []).slice(0, 2).map((tag) => (
+                          <span key={tag} className="rounded-full bg-white/5 px-2 py-0.5 text-[9px] font-bold text-white/40">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </button>
                 );
@@ -355,8 +402,42 @@ export default function MessagingInbox() {
                   >
                     {selectedConv.status === 'ai_handling' ? <PauseCircle size={16} /> : <PlayCircle size={16} />}
                   </button>
+                  <button
+                    onClick={handleAnalyzeConversation}
+                    disabled={analyzing}
+                    className="px-3 py-2 rounded-xl border border-primary/20 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-wider hover:bg-primary/20 disabled:opacity-50"
+                  >
+                    {analyzing ? 'Đang phân tích...' : 'AI phân tích'}
+                  </button>
                 </div>
               </div>
+
+              {(selectedConv.summary || selectedConv.tags?.length || selectedConv.leadScore) && (
+                <div className="mx-4 mt-4 rounded-2xl border border-primary/10 bg-primary/5 p-4">
+                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">CRM Intelligence</p>
+                      <p className="mt-2 text-sm text-white/70">{selectedConv.summary || 'Chưa có tóm tắt hội thoại.'}</p>
+                      {selectedConv.nextAction && (
+                        <p className="mt-2 text-xs text-emerald-300">Việc tiếp theo: {selectedConv.nextAction}</p>
+                      )}
+                    </div>
+                    <div className="shrink-0 rounded-2xl bg-white/5 px-4 py-3 text-center">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-white/40">Lead Score</p>
+                      <p className="text-2xl font-black text-primary">{selectedConv.leadScore || 0}</p>
+                    </div>
+                  </div>
+                  {selectedConv.tags?.length ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {selectedConv.tags.map((tag) => (
+                        <span key={tag} className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold text-white/60">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              )}
 
               {/* Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">

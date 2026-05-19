@@ -2,17 +2,17 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, 
-  FileText, 
-  Video, 
-  Megaphone, 
-  Users, 
   Settings, 
   MessageSquare,
   Inbox,
   BarChart3,
+  CalendarDays,
+  Database,
+  FileBarChart,
+  FolderKanban,
   ChevronRight,
   LayoutGrid,
   Menu,
@@ -20,7 +20,8 @@ import {
   Zap,
   Sparkles,
   Moon,
-  Flower2
+  Flower2,
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
@@ -29,23 +30,36 @@ const menuItems = [
   { name: 'Dashboard', icon: LayoutDashboard, href: '/' },
   { name: 'Thư viện AI', icon: LayoutGrid, href: '/skills' },
   { name: 'Facebook Insights', icon: BarChart3, href: '/strategy/facebook-insights' },
-  { name: 'Nội dung', icon: FileText, href: '/content' },
-  { name: 'Video Script', icon: Video, href: '/video' },
-  { name: 'Quảng cáo', icon: Megaphone, href: '/ads' },
   { name: 'Radar Xu hướng', icon: Zap, href: '/strategy/trend-spy' },
   { name: 'AI Studio', icon: Sparkles, href: '/content/ai-studio' },
-  { name: 'Cá nhân hóa', icon: Users, href: '/personal-brand' },
   { name: 'Hộp thư', icon: Inbox, href: '/messaging' },
+  { name: 'Tài sản AI', icon: FolderKanban, href: '/outputs' },
+  { name: 'Lịch nội dung', icon: CalendarDays, href: '/calendar' },
+  { name: 'Báo cáo tuần', icon: FileBarChart, href: '/reports' },
   { name: 'Cài đặt AI Chat', icon: MessageSquare, href: '/settings/messaging' },
+  { name: 'Kết nối hệ thống', icon: Database, href: '/settings/integrations' },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const isPink = theme === 'pink';
 
-  if (pathname === '/special') return null;
+  if (pathname === '/special' || pathname === '/login') return null;
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } finally {
+      setIsOpen(false);
+      router.replace('/login');
+      router.refresh();
+    }
+  };
 
   return (
     <>
@@ -205,15 +219,31 @@ export default function Sidebar() {
               </div>
             </div>
             
-            <button className={cn(
-              "w-full flex items-center justify-center gap-2 px-4 py-3 text-xs font-bold rounded-xl transition-all duration-300 border relative z-10",
-              isPink
-                ? "bg-white border-rose-100 text-rose-600 hover:bg-rose-50"
-                : "bg-white/5 border-white/5 text-foreground hover:bg-white/10"
-            )}>
-              <Settings size={14} />
-              Cấu hình hệ thống
-            </button>
+            <div className="relative z-10 grid grid-cols-1 gap-2">
+              <button className={cn(
+                "w-full flex items-center justify-center gap-2 px-4 py-3 text-xs font-bold rounded-xl transition-all duration-300 border",
+                isPink
+                  ? "bg-white border-rose-100 text-rose-600 hover:bg-rose-50"
+                  : "bg-white/5 border-white/5 text-foreground hover:bg-white/10"
+              )}>
+                <Settings size={14} />
+                Cấu hình hệ thống
+              </button>
+
+              <button
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className={cn(
+                  "w-full flex items-center justify-center gap-2 px-4 py-3 text-xs font-bold rounded-xl transition-all duration-300 border disabled:opacity-60",
+                  isPink
+                    ? "bg-white border-rose-100 text-rose-700 hover:bg-rose-50"
+                    : "bg-red-500/10 border-red-500/10 text-red-300 hover:bg-red-500/15"
+                )}
+              >
+                <LogOut size={14} />
+                {loggingOut ? 'Đang đăng xuất...' : 'Đăng xuất'}
+              </button>
+            </div>
           </div>
         </div>
       </aside>
